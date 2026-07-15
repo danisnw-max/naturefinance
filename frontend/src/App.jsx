@@ -108,6 +108,13 @@ export default function App() {
   // Fetch all initial data
   const loadData = async () => {
     try {
+      // Auto-sync sales with store DB silently on app load
+      try {
+        await api.post('/ventas/sync-tienda');
+      } catch (e) {
+        console.warn("Silent sync failed:", e);
+      }
+
       const cfg = await api.get('/config');
       setConfigFiscal(cfg);
       

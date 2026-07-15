@@ -20,3 +20,12 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - **Portal de Gestoría**: Gestor documental de justificantes en PDF y carga de CSV de ventas.
   - **Datos Fiscales**: Configuración de existencias (COGS) y porcentajes fiscales.
 - Archivo de ejemplo `ventas_ejemplo.csv` para pruebas del importador.
+- **Conexión Inter-BBDD**: Conexión nativa de solo lectura desde el backend contable hacia la base de datos de la tienda (`database.db`).
+- **Sincronización Automática**: La aplicación consulta y actualiza los ingresos de la tienda automáticamente en cada carga del sistema, prescindiendo del botón manual.
+- **Campo Dirección Fiscal**: Incorporación del campo `dirección` en el backend y en la interfaz (Datos Fiscales).
+
+### Cambiado
+- **Arquitectura de Reportes**: Centralización de los cálculos fiscales (Modelos 303, 130, 111, 115, etc.) en el backend (FastAPI) para un rendimiento instantáneo (nuevo endpoint `GET /api/reports/fiscal-summary`).
+- **Proveedores Unificados**: El listado de proveedores se lee en tiempo real de la base de datos de la tienda en lugar de duplicarse.
+- **Rendimiento**: Paginación backend añadida en el `Libro de Gastos` para evitar saturación de cliente con históricos grandes.
+- **Interfaz de Justificantes**: Nuevo botón de subida rápida de justificantes en PDF o imagen, línea por línea.

@@ -74,6 +74,16 @@ export default function FiscalTab({ configFiscal, onSaveConfig }) {
                     className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-medium outline-none focus:border-emerald-500 transition-colors" 
                   />
                 </div>
+                <div>
+                  <label className="text-[10px] uppercase text-slate-500 font-black mb-2 block">Dirección Fiscal</label>
+                  <input 
+                    type="text" 
+                    name="direccion"
+                    value={formData.direccion || ''} 
+                    onChange={handleChange} 
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-medium outline-none focus:border-emerald-500 transition-colors" 
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] uppercase text-slate-500 font-black mb-2 block">NIF / CIF</label>

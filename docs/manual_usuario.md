@@ -16,8 +16,10 @@ Lectura rápida de KPIs financieros principales:
 - **Beneficio Neto (Bolsillo)**: Dinero limpio libre de impuestos.
 
 ### 2. Libro de Gastos
-Registro ordenado de tus operaciones de compra:
+Registro ordenado de tus operaciones de compra (con paginación automática):
 - Permite ingresar facturas estándar y facturas rectificativas/abonos (usando el selector de tipo de documento para restar importes).
+- Cuenta con un selector predictivo de proveedores integrado con la base de datos de la tienda.
+- Permite adjuntar el PDF o imagen de tu justificante directamente desde la tabla de operaciones, en cada fila.
 - Opción de marcar un gasto de gran valor (> 300€) como bien de inversión para amortizarlo linealmente.
 
 ### 3. Cerebro Estratégico
@@ -38,6 +40,10 @@ Visualiza el valor depreciado anual y mensual de tus inversiones duraderas, calc
 
 ### 6. Portal de Gestoría
 Gestión documental para cierres trimestrales y anuales:
-- **Subida de Ventas**: Importación del CSV exportado de NaturaERP.
-- **Gestor Documental**: Listado inteligente por proveedor que te indica qué justificante PDF te falta subir y permite cargarlos directamente.
+- **Sincronización Automática**: El sistema obtiene tus ingresos de forma invisible desde la base de datos de la tienda, manteniendo tus números actualizados cada vez que inicias sesión.
+- **Subida de Ventas (Opcional)**: Sigue disponible la importación del CSV si prefieres trabajar sin la conexión local directa.
+- **Gestor Documental**: Listado inteligente por proveedor que te indica qué justificante PDF te falta subir y permite cargarlos.
 - **Generación de lotes**: Descarga de lote ZIP de justificantes y generación de borradores XML/LROE (Modelo 140).
+
+### 7. Datos Fiscales
+Panel de configuración donde defines la identidad fiscal (Nombre, NIF, Dirección Fiscal) y los regímenes tributarios (como la estimación directa y variables de COGS / IVA).
