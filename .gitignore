@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.env
+.env.*
+database.db
+*.db
+uploads/justificantes/*
+!uploads/justificantes/.gitkeep
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

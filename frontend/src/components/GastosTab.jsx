@@ -1,0 +1,342 @@
+import React from 'react';
+import { 
+  X, Plus, Receipt, CalendarDays, RefreshCcw, Zap, 
+  Percent, ArrowUpRight, ArrowDownRight, Edit3, Trash2, CheckCircle2, AlertTriangle, FileText, Upload
+} from 'lucide-react';
+
+export default function GastosTab({ 
+  gastos, 
+  onSaveGasto, 
+  onDeleteGasto, 
+  onEditGasto,
+  categories,
+  showForm,
+  setShowForm,
+  nuevoGasto,
+  setNuevoGasto,
+  editingId,
+  resetForm
+}) {
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setNuevoGasto(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSaveGasto(e);
+  };
+
+  return (
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      
+      {/* Header and Toggle form */}
+      <div className="flex justify-between items-center">
+        <h3 className="text-2xl font-black italic uppercase tracking-widest text-slate-800">
+          Historial de Gastos
+        </h3>
+        <button 
+          onClick={() => { if(showForm) resetForm(); setShowForm(!showForm); }} 
+          className="bg-slate-900 text-white px-8 py-4 rounded-[24px] shadow-2xl flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95"
+        >
+          {showForm ? <X size={20} className="text-rose-400" /> : <Plus size={20} className="text-emerald-400" />}
+          <span className="font-bold text-sm uppercase tracking-widest">{showForm ? 'Cancelar' : 'Añadir Gasto'}</span>
+        </button>
+      </div>
+
+      {/* FORM */}
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-slate-900 p-10 rounded-[40px] shadow-2xl text-white grid grid-cols-1 md:grid-cols-12 gap-6 items-end relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
+          
+          {/* SELECTOR DE ABONO / RECTIFICATIVA */}
+          <div className="col-span-1 md:col-span-12 p-6 bg-indigo-900/40 border border-indigo-500/50 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 relative z-10">
+            <div className="flex gap-4 items-center">
+               <RefreshCcw size={24} className="text-indigo-400 shrink-0" />
+               <div>
+                  <p className="font-black uppercase tracking-widest text-[10px] text-indigo-300 mb-1">Tipo de Documento</p>
+                  <p className="text-sm font-bold text-white">¿Es una Factura Rectificativa o Abono de Proveedor?</p>
+               </div>
+            </div>
+            <button 
+              type="button" 
+              onClick={() => setNuevoGasto(prev => ({...prev, esAbono: !prev.esAbono}))} 
+              className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shrink-0 ${nuevoGasto.esAbono ? 'bg-rose-500 text-white shadow-lg' : 'bg-white/10 text-indigo-300'}`}
+            >
+               {nuevoGasto.esAbono ? 'SÍ, ES UN ABONO (Resta)' : 'NO, ES UN GASTO (Suma)'}
+            </button>
+          </div>
+
+          <div className="col-span-1 md:col-span-2 z-10">
+            <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">Fecha</label>
+            <input 
+              type="date" 
+              required 
+              name="fecha"
+              value={nuevoGasto.fecha} 
+              onChange={handleInputChange} 
+              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500" 
+            />
+          </div>
+
+          <div className="col-span-1 md:col-span-2 z-10">
+            <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">Día Cargo</label>
+            <input 
+              type="number" 
+              min="1" 
+              max="31" 
+              required 
+              name="diaCobro"
+              value={nuevoGasto.diaCobro} 
+              onChange={handleInputChange} 
+              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500" 
+            />
+          </div>
+
+          <div className="col-span-1 md:col-span-3 z-10">
+            <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">Categoría</label>
+            <select 
+              name="categoria"
+              value={nuevoGasto.categoria} 
+              onChange={handleInputChange} 
+              className="w-full bg-slate-800 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500 appearance-none"
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="col-span-1 md:col-span-5 z-10">
+            <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">Proveedor / Concepto</label>
+            <input 
+              type="text" 
+              required 
+              name="concepto"
+              placeholder="Ej. Iberdrola, Alquiler, Seguridad Social" 
+              value={nuevoGasto.concepto} 
+              onChange={handleInputChange} 
+              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500" 
+            />
+          </div>
+
+          <div className="col-span-1 md:col-span-3 z-10">
+            <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">Importe Bruto (€)</label>
+            <input 
+              type="number" 
+              step="0.01" 
+              min="0" 
+              required 
+              name="importe"
+              placeholder="0.00" 
+              value={nuevoGasto.importe} 
+              onChange={handleInputChange} 
+              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500 text-xl font-bold" 
+            />
+          </div>
+
+          <div className="col-span-1 md:col-span-3 z-10">
+            <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">% IVA</label>
+            <select 
+              name="iva"
+              value={nuevoGasto.iva} 
+              onChange={handleInputChange} 
+              className="w-full bg-slate-800 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500 appearance-none"
+            >
+              <option value="0">0%</option>
+              <option value="4">4%</option>
+              <option value="10">10%</option>
+              <option value="21">21%</option>
+            </select>
+          </div>
+
+          <div className="col-span-1 md:col-span-3 z-10">
+            <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">% IVA Deducible</label>
+            <input 
+              type="number" 
+              min="0" 
+              max="100" 
+              name="deducibleIva"
+              value={nuevoGasto.deducibleIva} 
+              onChange={handleInputChange} 
+              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500" 
+            />
+          </div>
+
+          <div className="col-span-1 md:col-span-3 z-10">
+            <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">% IRPF Deducible</label>
+            <input 
+              type="number" 
+              min="0" 
+              max="100" 
+              name="deducibleIrpf"
+              value={nuevoGasto.deducibleIrpf} 
+              onChange={handleInputChange} 
+              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500" 
+            />
+          </div>
+
+          {/* CONTROL IA: CONTROL DE BIENES DE INVERSIÓN */}
+          <div className="col-span-1 md:col-span-12 p-6 bg-emerald-950/40 border border-emerald-500/30 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-2 z-10">
+            <div className="flex gap-4 items-center">
+              <Zap size={24} className="text-emerald-400 shrink-0" />
+              <div>
+                <p className="font-black uppercase tracking-widest text-[10px] text-emerald-300 mb-1">Enrutamiento de Activos</p>
+                <p className="text-sm font-bold text-white">¿Este gasto es una compra de bien duradero &gt; 300€ (Inversión)?</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              {nuevoGasto.esInversion && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-400 uppercase font-black">Años Vida Útil:</span>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    max="50" 
+                    name="vidaUtil"
+                    value={nuevoGasto.vidaUtil} 
+                    onChange={handleInputChange} 
+                    className="w-16 bg-white/5 border border-white/10 rounded-xl p-2 text-white font-bold outline-none focus:border-emerald-500" 
+                  />
+                </div>
+              )}
+              <button 
+                type="button" 
+                onClick={() => setNuevoGasto(prev => ({...prev, esInversion: !prev.esInversion}))} 
+                className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${nuevoGasto.esInversion ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'bg-white/10 text-emerald-400'}`}
+              >
+                {nuevoGasto.esInversion ? 'SÍ, CREAR COMO INVERSIÓN' : 'NO, ES UN GASTO CORRIENTE'}
+              </button>
+            </div>
+          </div>
+
+          <div className="col-span-1 md:col-span-12 flex justify-end gap-4 mt-4 z-10 font-black uppercase italic">
+            <button 
+              type="button" 
+              onClick={() => { resetForm(); setShowForm(false); }} 
+              className="bg-white/5 border border-white/10 px-8 py-4 rounded-[20px] text-xs hover:bg-white/10 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              className="bg-emerald-500 text-slate-900 px-10 py-4 rounded-[20px] text-xs hover:bg-emerald-400 shadow-xl transition-all hover:scale-[1.02]"
+            >
+              {editingId ? 'Guardar Cambios' : 'Añadir Registro'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* TABLE */}
+      <div className="bg-white rounded-[40px] shadow-2xl border border-slate-100/50 overflow-hidden">
+        <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+          <div>
+            <h4 className="font-black uppercase italic text-slate-800">
+              Registros en el Periodo
+            </h4>
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest">
+              Total: {gastos.length} operaciones
+            </span>
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full min-w-[900px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-slate-100 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 bg-slate-50/50">
+                <th className="py-6 px-10">Operación / Concepto</th>
+                <th className="py-6 px-10 text-center">Fecha y Cargo</th>
+                <th className="py-6 px-10 text-center">Justificante</th>
+                <th className="py-6 px-10 text-center">Deducibilidad</th>
+                <th className="py-6 px-10 text-right">Importe</th>
+                <th className="py-6 px-10 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {gastos.map(g => {
+                const isAbono = g.importe < 0;
+                return (
+                  <tr key={g.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="py-8 px-10">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-2xl ${isAbono ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-600'}`}>
+                          <Receipt size={20} />
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900 uppercase italic leading-none">{g.concepto}</p>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 block">
+                            {g.categoria}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-8 px-10 text-center">
+                      <p className="text-sm font-bold text-slate-700 leading-none">{g.fecha}</p>
+                      <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1 block">
+                        Día cobro: {g.diaCobro}
+                      </span>
+                    </td>
+                    <td className="py-8 px-10 text-center shrink-0">
+                      {g.justificante_filename ? (
+                        <span className="text-emerald-500 font-black text-[10px] uppercase bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">
+                          Subido
+                        </span>
+                      ) : (
+                        <span className="text-rose-400 font-black text-[10px] uppercase bg-rose-500/10 px-3 py-1 rounded-xl border border-rose-500/20">
+                          Pendiente
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-8 px-10 text-center">
+                      <div className="flex flex-col items-center gap-1.5">
+                        <span className="bg-slate-100 px-3 py-1 rounded-xl text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">
+                          IVA {g.iva}%
+                        </span>
+                        <div className="flex gap-2">
+                          <span className={`text-[8px] font-black uppercase tracking-widest border border-current px-1.5 py-0.5 rounded ${g.deducibleIva === 100 ? 'text-emerald-500' : g.deducibleIva > 0 ? 'text-amber-500' : 'text-slate-400'}`}>
+                            IVA: {g.deducibleIva}%
+                          </span>
+                          <span className={`text-[8px] font-black uppercase tracking-widest border border-current px-1.5 py-0.5 rounded ${g.deducibleIrpf === 100 ? 'text-indigo-500' : g.deducibleIrpf > 0 ? 'text-amber-500' : 'text-slate-400'}`}>
+                            IRPF: {g.deducibleIrpf}%
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-8 px-10 text-right">
+                      <span className={`text-2xl font-black tracking-tighter leading-none ${isAbono ? 'text-emerald-600' : 'text-rose-500'}`}>
+                        {isAbono ? '+' : '-'}{Math.abs(g.importe).toLocaleString('es-ES')} €
+                      </span>
+                    </td>
+                    <td className="py-8 px-10 text-center">
+                      <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => onEditGasto(g)} 
+                          className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                          title="Editar"
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => onDeleteGasto(g.id)} 
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

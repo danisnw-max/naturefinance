@@ -1,0 +1,1008 @@
+import React, { useState, useMemo } from 'react';
+import { 
+  LayoutDashboard, 
+  Receipt, 
+  PieChart,
+  CheckCircle2, 
+  Trash2, 
+  FolderLock, 
+  Download, 
+  Upload, 
+  Info, 
+  CalendarDays, 
+  ShieldCheck, 
+  CreditCard, 
+  Bell, 
+  BarChart3, 
+  Scale, 
+  Calculator, 
+  Building2,
+  Boxes,
+  Lock,
+  FileCheck2,
+  Zap,
+  BrainCircuit,
+  Lightbulb,
+  Gauge,
+  Wallet,
+  Plus,
+  X,
+  Target,
+  ArrowUpRight,
+  ArrowDownRight,
+  TrendingUp,
+  TrendingDown,
+  Settings,
+  User,
+  Percent,
+  AlertTriangle,
+  RefreshCcw
+} from 'lucide-react';
+
+// --- CONFIGURACIÓN FISCAL ---
+const IVA_TIPO_VENTAS = 10; 
+const RETENCION_IRPF_PROYECTADA = 20; 
+const DIFICIL_JUSTIFICACION_PCT = 10; 
+const DIFICIL_JUSTIFICACION_LIMITE = 4000; 
+
+const INITIAL_CATEGORIES = [
+  'Alquiler', 'S.S. Autónomo', 'Suministros', 'Gestoría', 'Marketing', 'Reposición', 'Nóminas y Personal', 'Dietas/Desplazamientos', 'Otros'
+];
+
+const INITIAL_EXPENSES = [
+  { id: 1, fecha: '2026-04-01', diaCobro: 1, categoria: 'Alquiler', concepto: 'Alquiler Local', importe: 1300, iva: 21, deducibleIva: 100, deducibleIrpf: 100 },
+  { id: 2, fecha: '2026-04-02', diaCobro: 28, categoria: 'S.S. Autónomo', concepto: 'Cuota Seguridad Social', importe: 320, iva: 0, deducibleIva: 0, deducibleIrpf: 100 },
+  { id: 3, fecha: '2026-04-05', diaCobro: 15, categoria: 'Suministros', concepto: 'Luz y Agua (Iberdrola)', importe: 250, iva: 21, deducibleIva: 100, deducibleIrpf: 100 },
+  { id: 4, fecha: '2026-04-10', diaCobro: 10, categoria: 'Gestoría', concepto: 'Mensualidad Contable', importe: 120, iva: 21, deducibleIva: 100, deducibleIrpf: 100 },
+  { id: 5, fecha: '2026-04-18', diaCobro: 20, categoria: 'Suministros', concepto: 'Teléfono Móvil (Vodafone)', importe: 60, iva: 21, deducibleIva: 50, deducibleIrpf: 50 },
+  { id: 6, fecha: '2026-04-28', diaCobro: 28, categoria: 'Nóminas y Personal', concepto: 'Nómina Dependienta', importe: 650, iva: 0, deducibleIva: 0, deducibleIrpf: 100 }
+];
+
+const INITIAL_INVESTMENTS = [
+  { id: 1, categoria: 'Local', concepto: 'Reforma y Adecuación', importe: 18000, vidaUtil: 10 },
+  { id: 2, categoria: 'Local', concepto: 'Mobiliario y Rotulación', importe: 9000, vidaUtil: 8 },
+  { id: 3, categoria: 'Stock', concepto: 'Stock Inicial', importe: 14000, vidaUtil: 0 },
+  { id: 4, categoria: 'Otros', concepto: 'Fondo Maniobra', importe: 15000, vidaUtil: 0 }
+];
+
+export default function App() {
+  // --- ESTADO ---
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [ingresosTotales, setIngresosTotales] = useState(11700);
+  const [gastos, setGastos] = useState(INITIAL_EXPENSES);
+  const [inversiones, setInversiones] = useState(INITIAL_INVESTMENTS);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null); 
+  const [isReportGenerated, setIsReportGenerated] = useState(false);
+  const [showAnnualReport, setShowAnnualReport] = useState(false);
+  const [gestoriaFiles, setGestoriaFiles] = useState({ ventas: null, ticketbai: null });
+  const [uploadedDocs, setUploadedDocs] = useState({});
+
+  // --- ESTADO DE INVENTARIO (COGS) ---
+  const [inventarioInicial, setInventarioInicial] = useState(14000); 
+  const [inventarioFinal, setInventarioFinal] = useState(12000); 
+
+  // --- ESTADO DATOS FISCALES ---
+  const [configFiscal, setConfigFiscal] = useState({
+    comercio: 'Aterpe Herboristería',
+    titular: 'Tu Nombre Apellidos',
+    nif: '12345678Z',
+    direccion: 'Calle Principal 1, Bizkaia',
+    epigrafe: '652.4 - Comercio plantas y hierbas',
+    regimenIva: 'General',
+    regimenIrpf: 'Estimación Directa Simplificada',
+    irpfProyectado: 20,
+    dificilJustificacion: 10,
+    retencionAlquiler: 19,
+    retencionNominas: 2
+  });
+
+  // --- ESTADO ESTRATÉGICO (Simulación) ---
+  const [simExtraCost, setSimExtraCost] = useState(0); 
+  const [simPriceChange, setSimPriceChange] = useState(0); 
+  const [simSueldo, setSimSueldo] = useState(1500); 
+
+  const [nuevoGasto, setNuevoGasto] = useState({
+    fecha: new Date().toISOString().split('T')[0],
+    diaCobro: new Date().getDate(),
+    categoria: INITIAL_CATEGORIES[0],
+    concepto: '',
+    importe: '',
+    iva: '21',
+    deducibleIva: 100,
+    deducibleIrpf: 100,
+    esInversion: false, // Control IA para inversiones > 300
+    esAbono: false, // Control para facturas rectificativas
+    vidaUtil: 4
+  });
+
+  // --- LÓGICA FISCAL Y ESTRATÉGICA (BLINDADA) ---
+  const fiscalData = useMemo(() => {
+    const adjustedIngresos = (ingresosTotales || 0) * (1 + (simPriceChange || 0) / 100);
+    const ventasBase = adjustedIngresos / (1 + (IVA_TIPO_VENTAS / 100));
+    const ivaVentas = adjustedIngresos - ventasBase;
+    
+    let totalGastosBrutos = 0;
+    let ivaGastosDeducible = 0;
+    let baseGastosDeducible = 0;
+    let retencionesAlquiler = 0;
+    let retencionesNominas = 0;
+
+    gastos.forEach(g => {
+      const importe = g.importe || 0;
+      const base = importe / (1 + (parseInt(g.iva || 0) / 100));
+      const cuota = importe - base;
+      const pctIva = (g.deducibleIva !== undefined ? g.deducibleIva : 100) / 100;
+      const pctIrpf = (g.deducibleIrpf !== undefined ? g.deducibleIrpf : 100) / 100;
+      
+      totalGastosBrutos += importe;
+      ivaGastosDeducible += (isNaN(cuota) ? 0 : cuota) * pctIva;
+      baseGastosDeducible += base * pctIrpf;
+
+      if (g.categoria === 'Alquiler') {
+        retencionesAlquiler += base * ((configFiscal.retencionAlquiler || 0) / 100);
+      } else if (g.categoria === 'Nóminas y Personal') {
+        retencionesNominas += base * ((configFiscal.retencionNominas || 0) / 100);
+      }
+    });
+
+    const totalGastosFinal = totalGastosBrutos + (simExtraCost || 0);
+    const balanceIVA = ivaVentas - ivaGastosDeducible;
+    
+    // VARIACIÓN DE EXISTENCIAS (COGS)
+    const variacionExistencias = (inventarioInicial || 0) - (inventarioFinal || 0);
+    const rendimientoNetoPrevio = ventasBase - baseGastosDeducible - (simExtraCost || 0) - variacionExistencias;
+    
+    // DIFÍCIL JUSTIFICACIÓN
+    const gastoDificilJustificacion = Math.min(Math.max(0, rendimientoNetoPrevio * ((configFiscal.dificilJustificacion || 0) / 100)), DIFICIL_JUSTIFICACION_LIMITE);
+    const rendimientoNetoFinal = rendimientoNetoPrevio - gastoDificilJustificacion;
+    
+    const provisionIRPF = Math.max(0, rendimientoNetoFinal * ((configFiscal.irpfProyectado || 0) / 100));
+    const beneficioReal = (adjustedIngresos - totalGastosFinal) - provisionIRPF - (balanceIVA > 0 ? balanceIVA : 0);
+
+    return { 
+      totalGastos: totalGastosFinal, 
+      beneficioNeto: adjustedIngresos - totalGastosFinal, 
+      beneficioReal, 
+      ventasBase,
+      ivaVentas, 
+      ivaGastos: ivaGastosDeducible,
+      baseGastosDeducible,
+      variacionExistencias,
+      balanceIVA, 
+      rendimientoNetoPrevio,
+      rendimientoNeto: rendimientoNetoFinal,
+      gastoDificilJustificacion,
+      provisionIRPF,
+      retencionesAlquiler,
+      retencionesNominas,
+      cargaFiscalTotal: provisionIRPF + (balanceIVA > 0 ? balanceIVA : 0) + retencionesAlquiler + retencionesNominas,
+      adjustedIngresos
+    };
+  }, [ingresosTotales, gastos, simExtraCost, simPriceChange, configFiscal, inventarioInicial, inventarioFinal]);
+
+  const amortizaciones = useMemo(() => {
+    const anual = inversiones.reduce((acc, inv) => inv.vidaUtil > 0 ? acc + (inv.importe / inv.vidaUtil) : acc, 0);
+    return { anual: anual || 0, mensual: (anual || 0) / 12 };
+  }, [inversiones]);
+
+  // RESTAURADO: Faltaba esta función para que la pestaña de Amortización calcule el ROI
+  const inversionStats = useMemo(() => {
+    const totalInversion = inversiones.reduce((acc, curr) => acc + (curr.importe || 0), 0);
+    const mesesROI = fiscalData.beneficioReal > 0 ? (totalInversion / fiscalData.beneficioReal) : 0;
+    const totalDeducibleAnual = amortizaciones.anual;
+    return { totalInversion, mesesROI, totalDeducibleAnual };
+  }, [inversiones, fiscalData.beneficioReal, amortizaciones]);
+
+  const gastosAgrupados = useMemo(() => {
+    const grupos = {};
+    gastos.forEach(g => {
+      if (!grupos[g.concepto]) {
+        grupos[g.concepto] = { proveedor: g.concepto, categoria: g.categoria, cantidadFacturas: 0, importeTotal: 0 };
+      }
+      grupos[g.concepto].cantidadFacturas += 1;
+      grupos[g.concepto].importeTotal += g.importe;
+    });
+    return Object.values(grupos);
+  }, [gastos]);
+
+  const fiscalCalendar = useMemo(() => {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    let nextDeadline = month <= 3 ? "25 de Abril" : month <= 6 ? "25 de Julio" : month <= 9 ? "25 de Octubre" : "25 de Enero";
+    let quarter = month <= 3 ? "1er Trimestre" : month <= 6 ? "2º Trimestre" : month <= 9 ? "3er Trimestre" : "4º Trimestre";
+    return { nextDeadline, quarter };
+  }, []);
+
+  // --- HANDLERS ---
+  const resetForm = () => {
+    setNuevoGasto({ 
+      fecha: new Date().toISOString().split('T')[0], 
+      diaCobro: new Date().getDate(), 
+      categoria: INITIAL_CATEGORIES[0], 
+      concepto: '', 
+      importe: '', 
+      iva: '21', 
+      deducibleIva: 100, 
+      deducibleIrpf: 100, 
+      esInversion: false, 
+      esAbono: false,
+      vidaUtil: 4 
+    });
+    setEditingId(null);
+  };
+
+  const handleSaveGasto = (e) => {
+    e.preventDefault();
+    if (!nuevoGasto.concepto || !nuevoGasto.importe) return;
+    
+    let importeNum = Math.abs(parseFloat(nuevoGasto.importe));
+    if (nuevoGasto.esAbono) {
+      importeNum = -importeNum;
+    }
+
+    // ENRUTADO INTELIGENTE: ¿Inversión o Gasto?
+    if (nuevoGasto.esInversion && !nuevoGasto.esAbono && !editingId) {
+      const nuevaInversion = {
+        id: Date.now(),
+        categoria: 'Equipamiento', // Asignación para inversiones automáticas
+        concepto: nuevoGasto.concepto,
+        importe: importeNum,
+        vidaUtil: nuevoGasto.vidaUtil || 4
+      };
+      setInversiones([...inversiones, nuevaInversion]);
+      setShowForm(false);
+      resetForm();
+      setActiveTab('inversion'); // Llevamos al usuario a ver su nueva amortización
+      return;
+    }
+
+    // Flujo normal (Gasto Corriente)
+    const data = { 
+      ...nuevoGasto, 
+      importe: importeNum, 
+      iva: parseInt(nuevoGasto.iva), 
+      diaCobro: parseInt(nuevoGasto.diaCobro) || 1, 
+      deducibleIva: parseInt(nuevoGasto.deducibleIva) || 0, 
+      deducibleIrpf: parseInt(nuevoGasto.deducibleIrpf) || 0 
+    };
+    
+    delete data.esInversion;
+    delete data.vidaUtil;
+    delete data.esAbono;
+
+    if (editingId) setGastos(gastos.map(g => g.id === editingId ? { ...data, id: editingId } : g));
+    else setGastos([...gastos, { ...data, id: Date.now() }]);
+    
+    setShowForm(false);
+    resetForm();
+  };
+
+  const handleEditGasto = (gasto) => {
+    setNuevoGasto({ 
+      ...gasto, 
+      iva: (gasto.iva || 21).toString(), 
+      deducibleIva: gasto.deducibleIva ?? 100, 
+      deducibleIrpf: gasto.deducibleIrpf ?? 100, 
+      esInversion: false, 
+      esAbono: gasto.importe < 0,
+      vidaUtil: 4,
+      importe: Math.abs(gasto.importe)
+    });
+    setEditingId(gasto.id);
+    setShowForm(true);
+  };
+
+  const handleGestoriaUpload = (type, e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setGestoriaFiles(prev => ({ ...prev, [type]: file.name }));
+      setIsReportGenerated(false);
+      setShowAnnualReport(false);
+      if (type === 'ventas') {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const lines = ev.target.result.split('\n').filter(l => l.trim() !== '');
+          const totalIdx = lines[0]?.toLowerCase().split(/[;,]/).findIndex(h => h.includes('total') || h.includes('importe'));
+          if (totalIdx !== -1) {
+            let suma = 0;
+            for (let i = 1; i < lines.length; i++) {
+              const val = parseFloat(lines[i].split(/[;,]/)[totalIdx]?.replace(',', '.').replace(/[^\d.-]/g, ''));
+              if (!isNaN(val)) suma += val;
+            }
+            setIngresosTotales(suma);
+          }
+        };
+        reader.readAsText(file);
+      }
+    }
+  };
+
+  const handleDocUpload = (proveedor, e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setUploadedDocs(prev => ({ ...prev, [proveedor]: file.name }));
+      setIsReportGenerated(false);
+      setShowAnnualReport(false);
+    }
+  };
+
+  const allDocsUploaded = useMemo(() => gastosAgrupados.length > 0 && gastosAgrupados.every(grupo => uploadedDocs[grupo.proveedor]), [gastosAgrupados, uploadedDocs]);
+  const canGeneratePackage = useMemo(() => gestoriaFiles.ventas && allDocsUploaded, [gestoriaFiles, allDocsUploaded]);
+
+  return (
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden">
+      
+      {/* SIDEBAR */}
+      <aside className="w-24 lg:w-72 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-20 shrink-0 overflow-y-auto">
+        <div className="h-32 flex items-center justify-center lg:justify-start lg:px-10 border-b border-white/5 shrink-0">
+          <div className="bg-emerald-500 p-3 rounded-2xl shadow-lg shadow-emerald-500/30">
+            <Wallet size={24} className="text-white" />
+          </div>
+          <div className="hidden lg:block ml-4 leading-tight">
+            <h1 className="text-xl font-black tracking-tighter text-white uppercase italic">NaturaFinance</h1>
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Strategic Intelligence</span>
+          </div>
+        </div>
+
+        <nav className="flex-1 px-4 py-8 space-y-2 font-black uppercase italic">
+          <SidebarButton tab="dashboard" icon={LayoutDashboard} label="Dashboard" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarButton tab="gastos" icon={Receipt} label="Libro Gastos" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarButton tab="estrategia" icon={BrainCircuit} label="Cerebro Estratégico" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarButton tab="calendario" icon={CalendarDays} label="Calendario Fiscal" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <div className="h-px bg-white/5 my-6 mx-4" />
+          <SidebarButton tab="fiscal" icon={Settings} label="Datos Fiscales" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarButton tab="inversion" icon={PieChart} label="Amortización" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarButton tab="gestoria" icon={FolderLock} label="Portal Gestoría" activeTab={activeTab} setActiveTab={setActiveTab} highlight />
+        </nav>
+      </aside>
+
+      {/* MAIN */}
+      <main className="flex-1 flex flex-col h-screen overflow-y-auto relative">
+        <div className="p-8 lg:p-14 max-w-7xl mx-auto w-full space-y-10 pb-24">
+          
+          <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 uppercase font-black italic">
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block tracking-[0.3em]">Accounting Intelligence</label>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 mt-1">
+                {activeTab === 'dashboard' ? 'Control de Negocio' : activeTab === 'gastos' ? 'Libro de Gastos' : activeTab === 'estrategia' ? 'Análisis Predictivo' : activeTab === 'gestoria' ? 'Cierre y Gestión' : activeTab === 'inversion' ? 'Recuperación de ROI' : activeTab === 'calendario' ? 'Calendario de Impuestos' : 'Perfil y Fiscalidad'}
+              </h2>
+            </div>
+            {activeTab === 'gastos' && (
+              <button onClick={() => { if(showForm) resetForm(); setShowForm(!showForm); }} className="bg-slate-900 text-white px-8 py-4 rounded-[24px] shadow-2xl flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95">
+                {showForm ? <X size={20} className="text-rose-400" /> : <Plus size={20} className="text-emerald-400" />}
+                <span className="font-bold text-sm uppercase tracking-widest">{showForm ? 'Cancelar' : 'Añadir Gasto'}</span>
+              </button>
+            )}
+          </header>
+
+          {/* DASHBOARD */}
+          {activeTab === 'dashboard' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 italic font-black">
+                <KpiCard title="Ingresos Brutos" value={ingresosTotales} icon={ArrowUpRight} color="bg-emerald-50 text-emerald-600" />
+                <KpiCard title="Gastos Totales" value={fiscalData.totalGastos} icon={ArrowDownRight} color="bg-rose-50 text-rose-500" />
+                <div className="p-8 rounded-[40px] shadow-2xl border border-slate-100 flex flex-col justify-between min-h-[220px] bg-slate-900 text-white">
+                  <div className="flex justify-between items-start">
+                    <label className="text-[10px] font-black uppercase text-emerald-400">Beneficio Neto (Empresa)</label>
+                    <Wallet size={24} className="text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-5xl font-black tracking-tighter leading-none">{(fiscalData.beneficioReal || 0).toLocaleString('es-ES')} €</p>
+                    <p className="text-[10px] text-emerald-500 font-bold mt-3 uppercase tracking-widest opacity-80">Dinero tras impuestos y gastos</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CALENDARIO FISCAL (NUEVA PESTAÑA) */}
+          {activeTab === 'calendario' && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="bg-slate-900 p-12 rounded-[40px] shadow-2xl text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-emerald-500 p-4 rounded-3xl shadow-lg"><CalendarDays size={32} /></div>
+                      <div>
+                        <h3 className="text-3xl font-black tracking-tighter uppercase">Ecosistema de Modelos</h3>
+                        <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mt-1">Cierre en Curso: {fiscalCalendar.quarter}</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/10 px-6 py-3 rounded-2xl border border-white/20">
+                      <span className="text-[10px] uppercase tracking-widest text-slate-400 block mb-1">Fecha Límite Hacienda Foral</span>
+                      <span className="font-black text-white">{fiscalCalendar.nextDeadline}</span>
+                    </div>
+                  </div>
+
+                  <p className="text-slate-400 mb-10 text-sm italic">
+                    El sistema ha detectado automáticamente tus obligaciones tributarias para este periodo basándose en tu actividad comercial, nóminas y alquileres.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                    {/* MODELO 303 */}
+                    <div className="bg-black/20 border border-white/10 p-8 rounded-[32px] hover:border-emerald-500/50 transition-all">
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <h4 className="font-black text-xl text-emerald-400">Modelo 303</h4>
+                          <span className="text-[10px] uppercase tracking-widest text-slate-400">Liquidación de IVA</span>
+                        </div>
+                        <CheckCircle2 className="text-emerald-500" size={24} />
+                      </div>
+                      <p className="text-3xl font-black mb-2">{Math.max(0, fiscalData.balanceIVA).toLocaleString('es-ES')} €</p>
+                      <p className="text-xs text-slate-400 italic">Generado a partir de ventas y compras.</p>
+                    </div>
+
+                    {/* MODELO 130 */}
+                    <div className="bg-black/20 border border-white/10 p-8 rounded-[32px] hover:border-emerald-500/50 transition-all">
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <h4 className="font-black text-xl text-emerald-400">Modelo 130</h4>
+                          <span className="text-[10px] uppercase tracking-widest text-slate-400">Pago Fraccionado IRPF</span>
+                        </div>
+                        <CheckCircle2 className="text-emerald-500" size={24} />
+                      </div>
+                      <p className="text-3xl font-black mb-2">{fiscalData.provisionIRPF.toLocaleString('es-ES')} €</p>
+                      <p className="text-xs text-slate-400 italic">20% sobre tu rendimiento neto trimestral.</p>
+                    </div>
+
+                    {/* MODELO 111 */}
+                    <div className={`p-8 rounded-[32px] border transition-all ${fiscalData.retencionesNominas > 0 ? 'bg-indigo-900/30 border-indigo-500/50' : 'bg-black/20 border-white/10 opacity-50'}`}>
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <h4 className={`font-black text-xl ${fiscalData.retencionesNominas > 0 ? 'text-indigo-400' : 'text-slate-400'}`}>Modelo 111</h4>
+                          <span className="text-[10px] uppercase tracking-widest text-slate-400">Retenciones Trabajadores y Profesionales</span>
+                        </div>
+                        {fiscalData.retencionesNominas > 0 ? <AlertTriangle className="text-amber-400" size={24} /> : <CheckCircle2 className="text-slate-600" size={24} />}
+                      </div>
+                      <p className="text-3xl font-black mb-2">{fiscalData.retencionesNominas.toLocaleString('es-ES')} €</p>
+                      <p className="text-xs text-slate-400 italic">
+                        {fiscalData.retencionesNominas > 0 ? 'Obligatorio por tener nóminas o facturas con retención.' : 'No tienes nóminas registradas este trimestre.'}
+                      </p>
+                    </div>
+
+                    {/* MODELO 115 */}
+                    <div className={`p-8 rounded-[32px] border transition-all ${fiscalData.retencionesAlquiler > 0 ? 'bg-rose-900/30 border-rose-500/50' : 'bg-black/20 border-white/10 opacity-50'}`}>
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <h4 className={`font-black text-xl ${fiscalData.retencionesAlquiler > 0 ? 'text-rose-400' : 'text-slate-400'}`}>Modelo 115</h4>
+                          <span className="text-[10px] uppercase tracking-widest text-slate-400">Retenciones Alquiler Local</span>
+                        </div>
+                        {fiscalData.retencionesAlquiler > 0 ? <AlertTriangle className="text-amber-400" size={24} /> : <CheckCircle2 className="text-slate-600" size={24} />}
+                      </div>
+                      <p className="text-3xl font-black mb-2">{fiscalData.retencionesAlquiler.toLocaleString('es-ES')} €</p>
+                      <p className="text-xs text-slate-400 italic">
+                        {fiscalData.retencionesAlquiler > 0 ? 'Obligatorio por tener alquiler comercial activo.' : 'No hay gastos de alquiler registrados.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Resumen Informativos Anuales */}
+                  <div className="bg-white/5 p-8 rounded-[32px] border border-white/10">
+                    <h4 className="font-black uppercase tracking-widest text-xs text-slate-400 mb-6">Modelos Informativos Anuales (Enero)</h4>
+                    <div className="flex flex-wrap gap-4">
+                      <span className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">390 (Resumen IVA)</span>
+                      <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${fiscalData.retencionesNominas > 0 ? 'bg-indigo-600 text-white' : 'bg-slate-800/50 text-slate-500'}`}>190 (Resumen Nóminas)</span>
+                      <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${fiscalData.retencionesAlquiler > 0 ? 'bg-rose-600 text-white' : 'bg-slate-800/50 text-slate-500'}`}>180 (Resumen Alquileres)</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* DATOS FISCALES */}
+          {activeTab === 'fiscal' && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="bg-slate-900 p-12 rounded-[40px] shadow-2xl text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
+                <div className="relative z-10 max-w-4xl">
+                  <div className="flex items-center gap-4 mb-8 leading-none">
+                    <div className="bg-emerald-500 p-4 rounded-3xl shadow-lg"><User size={32} /></div>
+                    <h3 className="text-4xl font-black tracking-tighter uppercase tracking-widest">Datos de Empresa</h3>
+                  </div>
+                  <p className="text-slate-400 mb-10 text-sm">
+                    Configuración de los parámetros fiscales y datos de la actividad para los modelos oficiales de la Hacienda Foral de Bizkaia.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <div className="space-y-6">
+                      <h4 className="text-emerald-400 font-black uppercase tracking-widest text-xs border-b border-white/10 pb-3">Identificación</h4>
+                      <div>
+                        <label className="text-[10px] uppercase text-slate-500 font-black mb-2 block">Nombre Comercial</label>
+                        <input type="text" value={configFiscal.comercio} onChange={e => setConfigFiscal({...configFiscal, comercio: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-medium outline-none focus:border-emerald-500" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase text-slate-500 font-black mb-2 block">Titular (Nombre y Apellidos)</label>
+                        <input type="text" value={configFiscal.titular} onChange={e => setConfigFiscal({...configFiscal, titular: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-medium outline-none focus:border-emerald-500" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[10px] uppercase text-slate-500 font-black mb-2 block">NIF / CIF</label>
+                          <input type="text" value={configFiscal.nif} onChange={e => setConfigFiscal({...configFiscal, nif: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-medium outline-none focus:border-emerald-500" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] uppercase text-slate-500 font-black mb-2 block">Territorio</label>
+                          <input type="text" disabled value="Bizkaia" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-slate-400 font-medium outline-none cursor-not-allowed" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <h4 className="text-emerald-400 font-black uppercase tracking-widest text-xs border-b border-white/10 pb-3">Régimen Tributario</h4>
+                      <div>
+                        <label className="text-[10px] uppercase text-slate-500 font-black mb-2 block">Epígrafe IAE</label>
+                        <input type="text" value={configFiscal.epigrafe} onChange={e => setConfigFiscal({...configFiscal, epigrafe: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-medium outline-none focus:border-emerald-500" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase text-slate-500 font-black mb-2 block">Régimen de IVA</label>
+                        <select value={configFiscal.regimenIva} onChange={e => setConfigFiscal({...configFiscal, regimenIva: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-medium outline-none focus:border-emerald-500 appearance-none">
+                          <option className="bg-slate-900">General</option>
+                          <option className="bg-slate-900">Recargo de Equivalencia</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase text-slate-500 font-black mb-2 block">Régimen de IRPF</label>
+                        <select value={configFiscal.regimenIrpf} onChange={e => setConfigFiscal({...configFiscal, regimenIrpf: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-medium outline-none focus:border-emerald-500 appearance-none">
+                          <option className="bg-slate-900">Estimación Directa Simplificada</option>
+                          <option className="bg-slate-900">Estimación Directa Normal</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/5 border border-white/10 rounded-[32px] p-8 mb-12">
+                    <div className="flex items-center gap-3 mb-6">
+                      <Boxes className="text-emerald-400" size={24} />
+                      <h4 className="text-lg font-black uppercase tracking-widest leading-none text-emerald-400">Declaración de Existencias (COGS)</h4>
+                    </div>
+                    <p className="text-slate-400 mb-8 text-xs font-medium">Hacienda exige ajustar tus compras según el stock real. No puedes deducirte la mercancía que has comprado pero que sigue en el almacén sin venderse.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <label className="text-[10px] uppercase text-emerald-100/70 font-black mb-2 block">Inventario Inicial (1 Enero)</label>
+                        <div className="relative">
+                          <input type="number" value={inventarioInicial} onChange={e => setInventarioInicial(parseFloat(e.target.value) || 0)} className="w-full bg-black/20 border border-emerald-500/30 rounded-2xl p-4 text-white font-black text-2xl outline-none focus:border-emerald-500" />
+                          <span className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-600 font-black text-xl">€</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase text-emerald-100/70 font-black mb-2 block">Inventario Final (31 Dic / Actual)</label>
+                        <div className="relative">
+                          <input type="number" value={inventarioFinal} onChange={e => setInventarioFinal(parseFloat(e.target.value) || 0)} className="w-full bg-black/20 border border-emerald-500/30 rounded-2xl p-4 text-white font-black text-2xl outline-none focus:border-emerald-500" />
+                          <span className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-600 font-black text-xl">€</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-900/30 border border-emerald-500/20 rounded-[32px] p-8">
+                    <div className="flex items-center gap-3 mb-6">
+                      <Percent className="text-emerald-400" size={24} />
+                      <h4 className="text-lg font-black uppercase tracking-widest leading-none text-emerald-400">Automatizaciones IRPF</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <label className="text-[10px] uppercase text-emerald-100/70 font-black mb-2 block">% Retención Proyectada (Modelo 130)</label>
+                        <div className="relative">
+                          <input type="number" value={configFiscal.irpfProyectado} onChange={e => setConfigFiscal({...configFiscal, irpfProyectado: parseInt(e.target.value) || 0})} className="w-full bg-black/20 border border-emerald-500/30 rounded-2xl p-4 text-white font-black text-2xl outline-none focus:border-emerald-500" />
+                          <span className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-xl">%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase text-emerald-100/70 font-black mb-2 block">% Gasto Difícil Justificación (Bizkaia)</label>
+                        <div className="relative">
+                          <input type="number" disabled value={configFiscal.dificilJustificacion} className="w-full bg-black/20 border border-emerald-500/30 rounded-2xl p-4 text-slate-400 font-black text-2xl outline-none cursor-not-allowed" />
+                          <span className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-600 font-black text-xl">%</span>
+                        </div>
+                      </div>
+                      {/* NUEVAS CONFIGURACIONES DE RETENCIONES */}
+                      <div className="pt-4 border-t border-emerald-500/20">
+                        <label className="text-[10px] uppercase text-emerald-100/70 font-black mb-2 block">% Retención Nóminas (Modelo 111)</label>
+                        <div className="relative">
+                          <input type="number" step="0.1" value={configFiscal.retencionNominas} onChange={e => setConfigFiscal({...configFiscal, retencionNominas: parseFloat(e.target.value) || 0})} className="w-full bg-black/20 border border-indigo-500/30 rounded-2xl p-4 text-white font-black text-xl outline-none focus:border-indigo-500" />
+                          <span className="absolute right-5 top-1/2 -translate-y-1/2 text-indigo-400 font-black text-xl">%</span>
+                        </div>
+                      </div>
+                      <div className="pt-4 border-t border-emerald-500/20">
+                        <label className="text-[10px] uppercase text-emerald-100/70 font-black mb-2 block">% Retención Alquiler (Modelo 115)</label>
+                        <div className="relative">
+                          <input type="number" value={configFiscal.retencionAlquiler} onChange={e => setConfigFiscal({...configFiscal, retencionAlquiler: parseInt(e.target.value) || 0})} className="w-full bg-black/20 border border-rose-500/30 rounded-2xl p-4 text-white font-black text-xl outline-none focus:border-rose-500" />
+                          <span className="absolute right-5 top-1/2 -translate-y-1/2 text-rose-400 font-black text-xl">%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CEREBRO ESTRATÉGICO */}
+          {activeTab === 'estrategia' && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700 italic">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 font-black uppercase">
+                <div className="bg-white p-10 rounded-[40px] shadow-2xl border border-slate-100">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="bg-emerald-500 p-3 rounded-2xl text-white"><Gauge size={24} /></div>
+                    <h3 className="text-2xl font-black tracking-tighter">Simulador de Escenarios</h3>
+                  </div>
+                  
+                  <div className="space-y-8">
+                    <div>
+                      <div className="flex justify-between text-xs font-black uppercase mb-4">
+                        <label>Coste Estructural Extra</label>
+                        <span className="text-emerald-600">+{simExtraCost.toLocaleString('es-ES')}€ / mes</span>
+                      </div>
+                      <input type="range" min="0" max="5000" step="100" value={simExtraCost} onChange={(e) => setSimExtraCost(parseInt(e.target.value) || 0)} className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+                    </div>
+                    
+                    <div>
+                      <div className="flex justify-between text-xs font-black uppercase mb-4">
+                        <label>Ajuste de Precios de Venta</label>
+                        <span className={simPriceChange >= 0 ? 'text-emerald-600' : 'text-rose-500'}>{simPriceChange}%</span>
+                      </div>
+                      <input type="range" min="-20" max="20" step="1" value={simPriceChange} onChange={(e) => setSimPriceChange(parseInt(e.target.value) || 0)} className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100">
+                      <div className="flex justify-between text-xs font-black uppercase mb-4">
+                        <label>Tu Sueldo Objetivo (Retirada)</label>
+                        <span className="text-indigo-600">-{simSueldo.toLocaleString('es-ES')}€ / mes</span>
+                      </div>
+                      <input type="range" min="0" max="4000" step="100" value={simSueldo} onChange={(e) => setSimSueldo(parseInt(e.target.value) || 0)} className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
+                      <p className="text-[10px] text-slate-400 mt-3 normal-case tracking-normal">Dinero retirado mensualmente para tus finanzas personales. No afecta al cálculo fiscal de la empresa.</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-10 p-8 bg-slate-900 rounded-[32px] text-white">
+                    <label className="text-[10px] text-emerald-400 block mb-2">Excedente Libre (Tras Impuestos y tu Sueldo)</label>
+                    <div className="flex items-baseline gap-4">
+                      <p className={`text-5xl font-black tracking-tighter ${(fiscalData.beneficioReal - simSueldo) >= 0 ? 'text-white' : 'text-rose-400'}`}>
+                        {((fiscalData.beneficioReal || 0) - simSueldo).toLocaleString('es-ES')} €
+                      </p>
+                      <span className="text-xs text-slate-400">/ Mensual</span>
+                    </div>
+                    
+                    <div className="mt-6 pt-5 border-t border-white/10 flex justify-between items-center text-[10px] uppercase font-black tracking-widest text-slate-400">
+                      <span>Benf. Empresa: {(fiscalData.beneficioReal || 0).toLocaleString('es-ES')} €</span>
+                      <span className="text-indigo-400">Tu Nómina: {simSueldo.toLocaleString('es-ES')} €</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-emerald-900 p-10 rounded-[40px] shadow-2xl text-white relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-4 mb-8">
+                      <div className="bg-white/10 p-3 rounded-2xl text-emerald-400"><Lightbulb size={24} /></div>
+                      <h3 className="text-2xl font-black tracking-tighter">Recomendaciones de Consultoría</h3>
+                    </div>
+                    <div className="space-y-6">
+                      <InsightCard icon={Target} title="Objetivo de Rentabilidad" msg={(fiscalData.beneficioReal - simSueldo) >= 0 ? "¡Felicidades! La tienda genera suficiente para cubrir tu sueldo objetivo y aún queda margen para reinvertir en stock." : `Actualmente te faltan ${Math.abs(fiscalData.beneficioReal - simSueldo)}€ al mes para poder cobrar tu sueldo objetivo sin descapitalizar el negocio.`} />
+                      <InsightCard icon={TrendingUp} title="Oportunidad de Precios" msg="Un aumento del 5% en precios compensa la contratación de una persona a 10h sin reducir tu beneficio neto actual." />
+                      <InsightCard icon={Zap} title="Eficiencia Fiscal" msg={`Estás aprovechando ${(fiscalData.gastoDificilJustificacion || 0).toFixed(0)}€ en deducciones automáticas por 'Gasto de Difícil Justificación'.`} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* GASTOS */}
+          {activeTab === 'gastos' && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              {showForm && (
+                <form onSubmit={handleSaveGasto} className="bg-slate-900 p-10 rounded-[40px] shadow-2xl text-white grid grid-cols-1 md:grid-cols-12 gap-6 items-end relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
+                  
+                  {/* NUEVO: SELECTOR DE ABONO / RECTIFICATIVA */}
+                  <div className="col-span-1 md:col-span-12 p-6 bg-indigo-900/40 border border-indigo-500/50 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 relative z-10">
+                    <div className="flex gap-4 items-center">
+                       <RefreshCcw size={24} className="text-indigo-400 shrink-0" />
+                       <div>
+                          <p className="font-black uppercase tracking-widest text-[10px] text-indigo-300 mb-1">Tipo de Documento</p>
+                          <p className="text-sm font-bold text-white">¿Es una Factura Rectificativa o Abono de Proveedor?</p>
+                       </div>
+                    </div>
+                    <button type="button" onClick={() => setNuevoGasto({...nuevoGasto, esAbono: !nuevoGasto.esAbono})} className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shrink-0 ${nuevoGasto.esAbono ? 'bg-rose-500 text-white shadow-lg' : 'bg-white/10 text-indigo-300'}`}>
+                       {nuevoGasto.esAbono ? 'SÍ, ES UN ABONO (Resta)' : 'NO, ES UN GASTO (Suma)'}
+                    </button>
+                  </div>
+
+                  <div className="col-span-1 md:col-span-2 z-10">
+                    <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">Fecha</label>
+                    <input type="date" required value={nuevoGasto.fecha} onChange={(e) => setNuevoGasto({...nuevoGasto, fecha: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500" />
+                  </div>
+                  <div className="col-span-1 md:col-span-2 z-10">
+                    <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">Día Cargo</label>
+                    <input type="number" min="1" max="31" required value={nuevoGasto.diaCobro} onChange={(e) => setNuevoGasto({...nuevoGasto, diaCobro: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500" />
+                  </div>
+                  <div className="col-span-1 md:col-span-3 z-10">
+                    <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">Categoría</label>
+                    <select value={nuevoGasto.categoria} onChange={(e) => {
+                      const val = e.target.value;
+                      let newIva = nuevoGasto.iva;
+                      let newDeducibleIva = nuevoGasto.deducibleIva;
+                      let newDeducibleIrpf = nuevoGasto.deducibleIrpf;
+
+                      if (val === 'S.S. Autónomo' || val === 'Nóminas y Personal') {
+                        newIva = '0';
+                        newDeducibleIva = 0;
+                        newDeducibleIrpf = 100;
+                      } else if (val === 'Dietas/Desplazamientos') {
+                        newDeducibleIrpf = 0; 
+                      }
+
+                      setNuevoGasto({...nuevoGasto, categoria: val, iva: newIva, deducibleIva: newDeducibleIva, deducibleIrpf: newDeducibleIrpf});
+                    }} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none appearance-none">
+                      {INITIAL_CATEGORIES.map(c => <option key={c} value={c} className="bg-slate-800">{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-span-1 md:col-span-5 z-10">
+                    <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">Concepto</label>
+                    <input type="text" required placeholder="Ej. Factura, Equipo, Mueble..." value={nuevoGasto.concepto} onChange={(e) => setNuevoGasto({...nuevoGasto, concepto: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500 mt-1" />
+                  </div>
+                  
+                  <div className="col-span-1 md:col-span-3 z-10">
+                    <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">Importe Total</label>
+                    <div className="relative">
+                      {nuevoGasto.esAbono && <span className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-500 font-black text-xl">-</span>}
+                      <input type="number" step="0.01" required value={nuevoGasto.importe} onChange={(e) => setNuevoGasto({...nuevoGasto, importe: e.target.value})} className={`w-full bg-white/5 border border-white/10 rounded-2xl p-4 font-black text-xl outline-none focus:ring-2 focus:ring-emerald-500 ${nuevoGasto.esAbono ? 'pl-8 text-rose-400' : 'text-white'}`} />
+                    </div>
+                  </div>
+                  <div className="col-span-1 md:col-span-2 z-10">
+                    <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">% IVA</label>
+                    <select value={nuevoGasto.iva} onChange={(e) => setNuevoGasto({...nuevoGasto, iva: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold">
+                      <option value="21" className="bg-slate-800">21%</option>
+                      <option value="10" className="bg-slate-800">10%</option>
+                      <option value="4" className="bg-slate-800">4%</option>
+                      <option value="0" className="bg-slate-800">0%</option>
+                    </select>
+                  </div>
+                  <div className="col-span-1 md:col-span-2 z-10">
+                    <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">% Deducible IVA</label>
+                    <input type="number" min="0" max="100" required value={nuevoGasto.deducibleIva} onChange={(e) => setNuevoGasto({...nuevoGasto, deducibleIva: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-emerald-400 font-black outline-none focus:ring-2 focus:ring-emerald-500" />
+                  </div>
+                  <div className="col-span-1 md:col-span-2 z-10">
+                    <label className="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">% Deducible IRPF</label>
+                    <input type="number" min="0" max="100" required value={nuevoGasto.deducibleIrpf} onChange={(e) => setNuevoGasto({...nuevoGasto, deducibleIrpf: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-indigo-400 font-black outline-none focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+
+                  <div className="col-span-1 md:col-span-3 flex justify-end gap-4 z-10 mt-4">
+                    <button type="submit" className={`w-full font-black tracking-widest uppercase text-xs px-10 py-5 rounded-2xl shadow-xl transition-all ${nuevoGasto.esAbono ? 'bg-rose-500 text-white hover:bg-rose-400' : 'bg-emerald-500 text-slate-900 hover:bg-emerald-400'}`}>
+                      {nuevoGasto.esAbono ? 'Registrar Abono' : (editingId ? 'Actualizar' : 'Registrar Gasto')}
+                    </button>
+                  </div>
+                </form>
+              )}
+              <div className="bg-white rounded-[40px] shadow-2xl border border-slate-100 overflow-hidden">
+                <div className="p-10 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="text-xl tracking-tight uppercase leading-none font-black italic">Registro de Facturas</h3>
+                  <div className="flex gap-4">
+                    <span className="flex items-center gap-2 text-[10px] uppercase text-emerald-600 font-black"><div className="w-2 h-2 bg-emerald-500 rounded-full" /> Gasto Normal</span>
+                    <span className="flex items-center gap-2 text-[10px] uppercase text-amber-600 font-black"><div className="w-2 h-2 bg-amber-500 rounded-full" /> Abono / Devolución</span>
+                  </div>
+                </div>
+                <table className="w-full text-left">
+                  <tbody className="divide-y divide-slate-50">
+                    {gastos.map((g) => (
+                      <tr key={g.id} onClick={() => handleEditGasto(g)} className={`hover:bg-slate-50 transition-colors cursor-pointer group ${g.importe < 0 ? 'bg-amber-50/30' : ''}`}>
+                        <td className="py-8 px-10">
+                          <div className="flex flex-col"><span className="font-black text-slate-800 uppercase text-xs">{g.fecha}</span><span className="text-[10px] font-black text-emerald-500 uppercase mt-1">Día {g.diaCobro}</span></div>
+                        </td>
+                        <td className="py-8 px-10">
+                          <div className="flex flex-col">
+                            <span className="font-black text-slate-900 text-lg tracking-tighter leading-none mb-1 uppercase">{g.concepto}</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              {g.categoria} {g.importe < 0 && <span className="text-amber-500 ml-2">(ABONO)</span>}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-8 px-10 text-center shrink-0">
+                          <div className="flex flex-col items-center gap-1.5">
+                            <span className="bg-slate-100 px-3 py-1.5 rounded-xl text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">IVA {g.iva}%</span>
+                            <div className="flex gap-2">
+                              <span className={`text-[9px] font-black uppercase tracking-widest border border-current px-2 py-0.5 rounded-md ${g.deducibleIva === 100 ? 'text-emerald-500' : g.deducibleIva > 0 ? 'text-amber-500' : 'text-slate-400'}`}>IVA: {g.deducibleIva}%</span>
+                              <span className={`text-[9px] font-black uppercase tracking-widest border border-current px-2 py-0.5 rounded-md ${g.deducibleIrpf === 100 ? 'text-indigo-500' : g.deducibleIrpf > 0 ? 'text-amber-500' : 'text-slate-400'}`}>IRPF: {g.deducibleIrpf}%</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-8 px-10 text-right">
+                          <span className={`text-3xl font-black tracking-tighter leading-none ${g.importe < 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {g.importe < 0 ? '+' : '-'}{Math.abs(g.importe).toLocaleString('es-ES')} €
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* GESTORÍA Y CIERRE (TRIMESTRAL Y ANUAL) */}
+          {activeTab === 'gestoria' && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-10 duration-700 italic font-black uppercase">
+              <div className="bg-slate-900 p-12 rounded-[40px] shadow-2xl text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
+                <div className="relative z-10 max-w-4xl">
+                  <div className="flex items-center gap-4 mb-8 leading-none"><div className="bg-emerald-500 p-4 rounded-3xl shadow-lg"><FolderLock size={32} /></div><h3 className="text-4xl font-black tracking-tighter italic uppercase tracking-widest">Portal de Cierre</h3></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <ImportBox label="Ventas Natura ERP" status={gestoriaFiles.ventas} onUpload={(e) => handleGestoriaUpload('ventas', e)} desc="CSV de ingresos." />
+                    <ImportBox label="TicketBAI (LROE)" status={gestoriaFiles.ticketbai} onUpload={(e) => handleGestoriaUpload('ticketbai', e)} desc="Ficheros LROE." />
+                  </div>
+                  
+                  <div className="bg-white/5 border border-white/10 rounded-[32px] p-8 mb-12">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-white/5 pb-6">
+                      <div className="flex items-center gap-3"><FileCheck2 className="text-emerald-400" size={28} /><div><h4 className="text-lg font-black italic uppercase tracking-widest leading-none">Gestor Documental</h4><span className="text-[10px] text-slate-400 uppercase tracking-widest">Archivos por Proveedor</span></div></div>
+                      <div className="bg-slate-950/50 text-emerald-400 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-emerald-500/20">{Object.keys(uploadedDocs).length} / {gastosAgrupados.length} Prov.</div>
+                    </div>
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                      {gastosAgrupados.map(grupo => (
+                        <div key={grupo.proveedor} className={`flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border transition-all ${uploadedDocs[grupo.proveedor] ? 'bg-emerald-900/20 border-emerald-500/30' : 'bg-black/20 border-white/5'}`}>
+                          <div className="leading-tight flex-1"><div className="flex items-center gap-2 mb-1"><p className="text-white text-sm font-black uppercase truncate">{grupo.proveedor}</p><span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[8px] uppercase tracking-widest">{grupo.categoria}</span></div><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{grupo.cantidadFacturas} Fra(s) • Total: {grupo.importeTotal.toLocaleString('es-ES')}€</span></div>
+                          <div>{uploadedDocs[grupo.proveedor] ? <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-black uppercase bg-emerald-500/10 px-4 py-2.5 rounded-xl border border-emerald-500/20"><CheckCircle2 size={14} /> {uploadedDocs[grupo.proveedor]}</div> : <label className="cursor-pointer bg-emerald-500 text-slate-900 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-400 flex items-center gap-2"><Upload size={14} /> Subir PDF<input type="file" className="hidden" onChange={(e) => handleDocUpload(grupo.proveedor, e)} /></label>}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onClick={() => { setIsReportGenerated(true); setShowAnnualReport(false); }} disabled={!canGeneratePackage} className={`p-8 rounded-[32px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 text-xs ${canGeneratePackage ? 'bg-emerald-500 text-slate-900 shadow-emerald-500/20 hover:scale-[1.02]' : 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed'}`}><Download size={20} /> Generar IVA Trimestral</button>
+                    <button onClick={() => { setShowAnnualReport(true); setIsReportGenerated(false); }} className="p-8 rounded-[32px] bg-slate-100 text-slate-900 font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 text-xs hover:bg-white hover:scale-[1.02] shadow-xl"><Calculator size={20} /> Ejecutar Cierre Anual 2026</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* REPORTE TRIMESTRAL */}
+              {isReportGenerated && (
+                <div className="bg-white p-12 rounded-[40px] shadow-2xl border-4 border-emerald-500/10 animate-in zoom-in-95 duration-500">
+                  <div className="flex justify-between items-center mb-10">
+                    <div className="flex items-center gap-4">
+                      <ShieldCheck size={48} className="text-emerald-500 shrink-0" />
+                      <div>
+                        <h4 className="text-3xl font-black tracking-tighter italic uppercase leading-none">Borrador Modelo 303 (IVA)</h4>
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Listo para enviar a la Gestoría (Con {gastos.length} facturas vinculadas)</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-4">
+                      <h5 className="text-[10px] font-black uppercase tracking-widest text-emerald-500 border-b pb-4 leading-none">IVA Repercutido (Ventas)</h5>
+                      <SummaryRow label="Base Imponible Ventas" value={fiscalData.ventasBase} />
+                      <SummaryRow label="Cuota IVA Devengado" value={fiscalData.ivaVentas} highlight />
+                    </div>
+                    <div className="space-y-4">
+                      <h5 className="text-[10px] font-black uppercase tracking-widest text-rose-500 border-b pb-4 leading-none">IVA Soportado (Gastos)</h5>
+                      <SummaryRow label="Base Imponible Gastos" value={fiscalData.totalGastos - fiscalData.ivaGastos} />
+                      <SummaryRow label="Cuota IVA Deducible" value={fiscalData.ivaGastos} highlight />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-12 pt-12 border-t flex flex-col md:flex-row justify-between items-center gap-8">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2 leading-none">Resultado de Liquidación</p>
+                      <p className={`text-7xl font-black tracking-tighter leading-none ${fiscalData.balanceIVA > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                        {fiscalData.balanceIVA.toLocaleString('es-ES')} €
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <button className="bg-slate-900 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-800 shadow-xl transition-colors flex items-center gap-3">
+                        <FileText size={16} /> Descargar Archivo ZIP
+                      </button>
+                      <button className="bg-indigo-600 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-500 shadow-xl transition-colors flex items-center gap-3">
+                        <FileCheck2 size={16} /> Generar Modelo 140 (XML)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* REPORTE ANUAL CON DIFÍCIL JUSTIFICACIÓN */}
+              {showAnnualReport && (
+                <div className="bg-emerald-50 p-12 rounded-[40px] shadow-2xl border-4 border-emerald-900/10 animate-in zoom-in-95 duration-500">
+                  <div className="flex justify-between items-center mb-10">
+                    <div className="flex items-center gap-4">
+                      <CalendarDays size={48} className="text-emerald-900" />
+                      <div><h4 className="text-3xl font-black tracking-tighter italic uppercase leading-none text-emerald-950">Cierre Fiscal Anual 2026</h4></div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-4">
+                      <h5 className="text-[10px] font-black uppercase tracking-widest text-emerald-900 border-b border-emerald-900/20 pb-4 leading-none">Resumen IRPF (Bizkaia)</h5>
+                      <SummaryRow label="Ingresos Anuales" value={fiscalData.ventasBase} />
+                      <SummaryRow label="Gastos Deducibles (Fra.)" value={fiscalData.baseGastosDeducible} />
+                      
+                      <div className="flex justify-between items-center py-2 uppercase">
+                        <span className="text-[10px] font-black text-slate-500 tracking-widest leading-none">Ajuste Variación Stock (COGS)</span>
+                        <span className={`font-black tracking-tighter leading-none text-lg ${fiscalData.variacionExistencias > 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                          {fiscalData.variacionExistencias > 0 ? '+' : ''}{(fiscalData.variacionExistencias || 0).toLocaleString('es-ES')} €
+                        </span>
+                      </div>
+
+                      <SummaryRow label="Amortizaciones Obra y Activos" value={amortizaciones.anual} />
+                      
+                      <div className="flex justify-between items-center py-3 bg-emerald-200/50 px-4 rounded-xl border border-emerald-300 mt-2">
+                        <div className="flex items-center gap-2"><Zap size={14} className="text-emerald-700" /><span className="text-[10px] font-black uppercase tracking-widest text-emerald-800">10% Difícil Justif.</span></div>
+                        <span className="font-black text-emerald-800 text-lg tracking-tighter">-{ (fiscalData.gastoDificilJustificacion || 0).toLocaleString('es-ES') } €</span>
+                      </div>
+                      
+                      <SummaryRow label="Rendimiento Neto Final" value={fiscalData.rendimientoNeto} highlight />
+                    </div>
+                    <div className="space-y-4">
+                      <h5 className="text-[10px] font-black uppercase tracking-widest text-emerald-900 border-b border-emerald-900/20 pb-4 leading-none">Resumen IVA (390)</h5>
+                      <SummaryRow label="IVA Repercutido Total" value={fiscalData.ivaVentas} />
+                      <SummaryRow label="IVA Soportado Total" value={fiscalData.ivaGastos} />
+                      <SummaryRow label="Resultado Anual IVA" value={fiscalData.balanceIVA} highlight />
+                    </div>
+                  </div>
+
+                  <div className="mt-12 pt-12 border-t border-emerald-900/10 flex flex-col md:flex-row justify-between items-center gap-8">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-2 leading-none">Beneficio de Bolsillo Anual</p>
+                      <p className="text-7xl font-black tracking-tighter leading-none text-emerald-900">{ (fiscalData.beneficioReal || 0).toLocaleString('es-ES') } €</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <button className="bg-slate-900 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-800 shadow-xl transition-colors flex items-center gap-3">
+                        <FileText size={16} /> Descargar Archivo ZIP
+                      </button>
+                      <button className="bg-emerald-900 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-800 transition-colors flex items-center gap-3">
+                        <FileCheck2 size={16} /> Generar Mod. 140/390 (XML)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// --- SUBCOMPONENTES ---
+function SidebarButton({ tab, icon: Icon, label, activeTab, setActiveTab, highlight }) {
+  const isActive = activeTab === tab;
+  return (
+    <button onClick={() => setActiveTab(tab)} className={`w-full flex items-center gap-4 p-5 rounded-[24px] transition-all ${isActive ? 'bg-white/10 text-white shadow-xl translate-x-1 border-r-4 border-emerald-500' : 'text-slate-500 hover:text-white font-bold'} ${highlight && !isActive ? 'text-emerald-400/80 hover:text-emerald-400' : ''}`}><Icon size={20} className={isActive ? 'text-emerald-400' : ''} /><span className="hidden lg:block text-sm tracking-tight text-left leading-none uppercase font-black">{label}</span></button>
+  );
+}
+
+function KpiCard({ title, value, icon: Icon, color }) {
+  return (
+    <div className="bg-white p-8 rounded-[40px] shadow-2xl border border-slate-100 flex flex-col justify-between min-h-[220px] shadow-slate-200/60 shadow-lg"><div className="flex justify-between items-start"><label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">{title}</label><div className={`p-3 rounded-2xl ${color}`}><Icon size={24} /></div></div><p className="text-5xl font-black tracking-tighter text-slate-900 leading-none">{value.toLocaleString('es-ES')} €</p></div>
+  );
+}
+
+function InsightCard({ icon: Icon, title, msg }) {
+  return (
+    <div className="flex gap-4 group">
+      <div className="bg-white/10 p-2 h-fit rounded-lg text-emerald-400 group-hover:bg-emerald-400 group-hover:text-slate-900 transition-all"><Icon size={20} /></div>
+      <div className="uppercase">
+        <h5 className="font-black text-white text-[10px] tracking-widest mb-1 leading-none">{title}</h5>
+        <p className="text-xs font-medium text-emerald-100/60 leading-relaxed normal-case">{msg}</p>
+      </div>
+    </div>
+  );
+}
+
+function ImportBox({ label, status, onUpload, desc }) {
+  return (
+    <label className={`cursor-pointer block p-8 rounded-[32px] border transition-all duration-300 shadow-lg uppercase ${status ? 'bg-emerald-900/40 border-emerald-500/50' : 'bg-white/5 border-white/5 hover:border-emerald-400/30'}`}><input type="file" className="hidden" onChange={onUpload} /><div className="flex justify-between items-start mb-4 leading-none"><h4 className="font-black italic text-sm tracking-widest text-white">{label}</h4>{status ? <CheckCircle2 size={24} className="text-emerald-400 shadow-lg" /> : <Upload size={24} className="text-slate-600" />}</div><p className="text-[10px] text-slate-500 font-bold tracking-widest truncate leading-none normal-case">{status ? `Fichero: ${status}` : desc}</p></label>
+  );
+}
+
+function SummaryRow({ label, value, highlight }) {
+  const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+  return (
+    <div className="flex justify-between items-end py-2 uppercase">
+      <span className="text-[10px] font-black text-slate-500 tracking-widest leading-none">{label}</span>
+      <span className={`font-black tracking-tighter leading-none ${highlight ? 'text-2xl text-slate-900' : 'text-lg text-slate-600'}`}>{safeValue.toLocaleString('es-ES')} €</span>
+    </div>
+  );
+}
