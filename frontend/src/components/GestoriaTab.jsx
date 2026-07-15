@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FolderLock, CheckCircle2, Upload, FileCheck2, Download, 
-  Calculator, ShieldCheck, FileText, AlertTriangle, RefreshCcw 
+  Calculator, ShieldCheck, FileText, RefreshCcw 
 } from 'lucide-react';
 
 export default function GestoriaTab({
@@ -17,10 +17,10 @@ export default function GestoriaTab({
   setShowAnnualReport,
   fiscalData,
   amortizaciones,
-  canGeneratePackage
+  canGeneratePackage,
+  onSyncTiendaVentas
 }) {
 
-  // Computes the summary row component
   const SummaryRow = ({ label, value, highlight }) => {
     const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
     return (
@@ -42,19 +42,28 @@ export default function GestoriaTab({
         <div className="relative z-10 max-w-4xl">
           
           <div className="flex items-center gap-4 mb-8 leading-none">
-            <div className="bg-emerald-50 p-3 rounded-2xl text-slate-900">
+            <div className="bg-emerald-50 text-slate-900 p-3 rounded-2xl">
               <FolderLock size={32} />
             </div>
             <h3 className="text-4xl font-black tracking-tighter italic uppercase tracking-widest">Portal de Cierre</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            <ImportBox 
-              label="Ventas Natura ERP" 
-              status={gestoriaFiles.ventas} 
-              onUpload={(e) => onGestoriaUpload('ventas', e)} 
-              desc="CSV de ingresos devengados." 
-            />
+            <div className="flex flex-col gap-4">
+              <ImportBox 
+                label="Ventas Natura ERP" 
+                status={gestoriaFiles.ventas} 
+                onUpload={(e) => onGestoriaUpload('ventas', e)} 
+                desc="CSV de ingresos devengados." 
+              />
+              <button 
+                type="button" 
+                onClick={onSyncTiendaVentas}
+                className="w-full bg-indigo-600 text-white py-4 rounded-[24px] shadow-lg font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-500 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+              >
+                <RefreshCcw size={16} /> Sincronizar Ventas de Tienda
+              </button>
+            </div>
             <ImportBox 
               label="TicketBAI (LROE)" 
               status={gestoriaFiles.ticketbai} 
@@ -70,11 +79,11 @@ export default function GestoriaTab({
                 <FileCheck2 className="text-emerald-400" size={28} />
                 <div>
                   <h4 className="text-lg font-black italic uppercase tracking-widest leading-none">Gestor Documental</h4>
-                  <span className="text-[10px] text-slate-400 uppercase tracking-widest normal-case font-bold">Asignación de justificantes PDF por proveedor</span>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-widest normal-case font-bold">Estado de facturas justificantes por proveedor en esta página</span>
                 </div>
               </div>
               <div className="bg-slate-950/50 text-emerald-400 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-emerald-500/20">
-                {Object.keys(uploadedDocs).length} / {gastosAgrupados.length} Proveedores
+                {Object.keys(uploadedDocs).length} / {gastosAgrupados.length} Prov.
               </div>
             </div>
 

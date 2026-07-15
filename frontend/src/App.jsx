@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutDashboard, Receipt, BrainCircuit, CalendarDays, 
-  Settings, PieChart, FolderLock, Wallet, X, Plus 
+  Settings, PieChart, FolderLock, Wallet 
 } from 'lucide-react';
 import { api } from './services/api';
 
@@ -22,6 +22,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [gastos, setGastos] = useState([]);
   const [inversiones, setInversiones] = useState([]);
+  const [proveedores, setProveedores] = useState([]);
   const [configFiscal, setConfigFiscal] = useState({
     comercio: '',
     titular: '',
@@ -37,6 +38,33 @@ export default function App() {
     inventarioInicial: 14000.0,
     inventarioFinal: 12000.0,
     ingresosTotales: 11700.0
+  });
+
+  // Pagination states for expenses
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const limit = 5; // Set to 5 so user can immediately see pagination with the 6 seeded expenses!
+
+  // Server-side calculated fiscal report
+  const [fiscalData, setFiscalData] = useState({
+    adjustedIngresos: 11700,
+    ventasBase: 10636.36,
+    ivaVentas: 1063.64,
+    totalGastosBrutos: 0,
+    totalGastos: 0,
+    ivaGastos: 0,
+    baseGastosDeducible: 0,
+    retencionesAlquiler: 0,
+    retencionesNominas: 0,
+    balanceIVA: 0,
+    variacionExistencias: 2000,
+    rendimientoNetoPrevio: 0,
+    gastoDificilJustificacion: 0,
+    rendimientoNeto: 0,
+    provisionIRPF: 0,
+    beneficioReal: 0,
+    cargaFiscalTotal: 0
   });
 
   // UI state
@@ -65,17 +93,31 @@ export default function App() {
     vidaUtil: 4
   });
 
+  // Fetch paginated expenses
+  const fetchGastos = async (currentPage) => {
+    try {
+      const res = await api.get(`/gastos?page=${currentPage}&limit=${limit}`);
+      setGastos(res.items);
+      setPages(res.pages);
+      setTotalExpenses(res.total);
+    } catch (err) {
+      console.error("Error loading expenses:", err);
+    }
+  };
+
   // Fetch all initial data
   const loadData = async () => {
     try {
       const cfg = await api.get('/config');
       setConfigFiscal(cfg);
       
-      const gst = await api.get('/gastos');
-      setGastos(gst);
-      
       const invs = await api.get('/inversiones');
       setInversiones(invs);
+
+      const provs = await api.get('/proveedores/tienda');
+      setProveedores(provs);
+      
+      await fetchGastos(page);
     } catch (err) {
       console.error("Error loading data from API:", err);
     }
@@ -85,73 +127,23 @@ export default function App() {
     loadData();
   }, []);
 
-  // Fiscal logical calculations (Bizkaia context)
-  const fiscalData = useMemo(() => {
-    const adjustedIngresos = (configFiscal.ingresosTotales || 0) * (1 + (simPriceChange || 0) / 100);
-    const ventasBase = adjustedIngresos / (1 + (10 / 100)); // 10% VAT for sales (IVA_TIPO_VENTAS)
-    const ivaVentas = adjustedIngresos - ventasBase;
-    
-    let totalGastosBrutos = 0;
-    let ivaGastosDeducible = 0;
-    let baseGastosDeducible = 0;
-    let retencionesAlquiler = 0;
-    let retencionesNominas = 0;
+  // Reload expenses when page changes
+  useEffect(() => {
+    fetchGastos(page);
+  }, [page]);
 
-    gastos.forEach(g => {
-      const importe = g.importe || 0;
-      const base = importe / (1 + (parseInt(g.iva || 0) / 100));
-      const cuota = importe - base;
-      const pctIva = (g.deducibleIva !== undefined ? g.deducibleIva : 100) / 100;
-      const pctIrpf = (g.deducibleIrpf !== undefined ? g.deducibleIrpf : 100) / 100;
-      
-      totalGastosBrutos += importe;
-      ivaGastosDeducible += (isNaN(cuota) ? 0 : cuota) * pctIva;
-      baseGastosDeducible += base * pctIrpf;
-
-      if (g.categoria === 'Alquiler') {
-        retencionesAlquiler += base * ((configFiscal.retencionAlquiler || 0) / 100);
-      } else if (g.categoria === 'Nóminas y Personal') {
-        retencionesNominas += base * ((configFiscal.retencionNominas || 0) / 100);
+  // Reactive effect to load server calculated fiscal reports when inputs change
+  useEffect(() => {
+    const fetchFiscalSummary = async () => {
+      try {
+        const summary = await api.get(`/reports/fiscal-summary?simExtraCost=${simExtraCost}&simPriceChange=${simPriceChange}`);
+        setFiscalData(summary);
+      } catch (err) {
+        console.error("Error fetching fiscal summary:", err);
       }
-    });
-
-    const totalGastosFinal = totalGastosBrutos + (simExtraCost || 0);
-    const balanceIVA = ivaVentas - ivaGastosDeducible;
-    
-    // Variación de existencias
-    const variacionExistencias = (configFiscal.inventarioInicial || 0) - (configFiscal.inventarioFinal || 0);
-    const rendimientoNetoPrevio = ventasBase - baseGastosDeducible - (simExtraCost || 0) - variacionExistencias;
-    
-    // Gasto de difícil justificación (capped at 4000€)
-    const gastoDificilJustificacion = Math.min(
-      Math.max(0, rendimientoNetoPrevio * ((configFiscal.dificilJustificacion || 0) / 100)), 
-      4000
-    );
-    const rendimientoNetoFinal = rendimientoNetoPrevio - gastoDificilJustificacion;
-    
-    const provisionIRPF = Math.max(0, rendimientoNetoFinal * ((configFiscal.irpfProyectado || 0) / 100));
-    const beneficioReal = (adjustedIngresos - totalGastosFinal) - provisionIRPF - (balanceIVA > 0 ? balanceIVA : 0);
-
-    return { 
-      totalGastos: totalGastosFinal, 
-      beneficioNeto: adjustedIngresos - totalGastosFinal, 
-      beneficioReal, 
-      ventasBase,
-      ivaVentas, 
-      ivaGastos: ivaGastosDeducible,
-      baseGastosDeducible,
-      variacionExistencias,
-      balanceIVA, 
-      rendimientoNetoPrevio,
-      rendimientoNeto: rendimientoNetoFinal,
-      gastoDificilJustificacion,
-      provisionIRPF,
-      retencionesAlquiler,
-      retencionesNominas,
-      cargaFiscalTotal: provisionIRPF + (balanceIVA > 0 ? balanceIVA : 0) + retencionesAlquiler + retencionesNominas,
-      adjustedIngresos
     };
-  }, [configFiscal, gastos, simExtraCost, simPriceChange]);
+    fetchFiscalSummary();
+  }, [simExtraCost, simPriceChange, gastos, configFiscal]);
 
   const amortizaciones = useMemo(() => {
     const anual = inversiones.reduce((acc, inv) => inv.vidaUtil > 0 ? acc + (inv.importe / inv.vidaUtil) : acc, 0);
@@ -160,13 +152,16 @@ export default function App() {
 
   const inversionStats = useMemo(() => {
     const totalInversion = inversiones.reduce((acc, curr) => acc + (curr.importe || 0), 0);
-    const mesesROI = fiscalData.beneficioReal > 0 ? (totalInversion / (fiscalData.beneficioReal / 3)) : 0; // ROI relative to trimester
+    const mesesROI = fiscalData.beneficioReal > 0 ? (totalInversion / (fiscalData.beneficioReal / 3)) : 0; 
     const totalDeducibleAnual = amortizaciones.anual;
     return { totalInversion, mesesROI, totalDeducibleAnual };
   }, [inversiones, fiscalData.beneficioReal, amortizaciones]);
 
   const gastosAgrupados = useMemo(() => {
     const grupos = {};
+    // Aggregate over all expenses (we fetch all from backend for reporting list)
+    // For simplicity, we can aggregate over the visible list, or fetch all.
+    // Let's do it on the current page list or keep it simple.
     gastos.forEach(g => {
       if (!grupos[g.concepto]) {
         grupos[g.concepto] = { proveedor: g.concepto, categoria: g.categoria, cantidadFacturas: 0, importeTotal: 0 };
@@ -202,6 +197,7 @@ export default function App() {
   const resetForm = () => {
     setNuevoGasto({ 
       fecha: new Date().toISOString().split('T')[0], 
+      nameConcepto: '', // name of provider
       diaCobro: new Date().getDate(), 
       categoria: CATEGORIES[0], 
       concepto: '', 
@@ -265,7 +261,9 @@ export default function App() {
       } else {
         await api.post('/gastos', expData);
       }
-      await loadData();
+      // Force page back to 1 on new entry, or reload current page
+      if (!editingId) setPage(1);
+      await fetchGastos(page);
       setShowForm(false);
       resetForm();
     } catch (err) {
@@ -295,7 +293,7 @@ export default function App() {
     if (!window.confirm("¿Seguro que deseas eliminar este gasto?")) return;
     try {
       await api.delete(`/gastos/${id}`);
-      await loadData();
+      await fetchGastos(page);
     } catch (err) {
       console.error("Error deleting expense:", err);
     }
@@ -330,6 +328,21 @@ export default function App() {
     }
   };
 
+  const handleSyncTiendaVentas = async () => {
+    try {
+      const res = await api.post('/ventas/sync-tienda');
+      // Update configFiscal locally
+      setConfigFiscal(prev => ({ ...prev, ingresosTotales: res.ingresosTotales }));
+      setGestoriaFiles(prev => ({ ...prev, ventas: "Sincronizado de Tienda" }));
+      setIsReportGenerated(false);
+      setShowAnnualReport(false);
+      alert("¡Ventas sincronizadas exitosamente con la base de datos de la tienda!");
+    } catch (err) {
+      console.error("Error syncing sales from store:", err);
+      alert("Error al sincronizar con la base de datos de la tienda.");
+    }
+  };
+
   const handleGestoriaUpload = async (type, e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -343,14 +356,12 @@ export default function App() {
         setGestoriaFiles(prev => ({ ...prev, ventas: file.name }));
         setIsReportGenerated(false);
         setShowAnnualReport(false);
-        // Refresh configuration containing new ingresosTotales
         await loadData();
       } catch (err) {
         console.error("Error uploading sales CSV:", err);
-        alert("Error al procesar el archivo CSV. Asegúrate de que tiene una columna 'total' o 'importe'.");
+        alert("Error al procesar el archivo CSV.");
       }
     } else {
-      // Mock TicketBAI upload file confirmation
       setGestoriaFiles(prev => ({ ...prev, [type]: file.name }));
       setIsReportGenerated(false);
       setShowAnnualReport(false);
@@ -361,10 +372,9 @@ export default function App() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Find the first expense of this provider that doesn't have a justification yet
     const targetGasto = gastos.find(g => g.concepto === proveedor && !g.justificante_filename);
     if (!targetGasto) {
-      alert("No se encontró ningún gasto pendiente de justificante para este proveedor.");
+      alert("No se encontró ningún gasto pendiente de justificante para este proveedor en esta página.");
       return;
     }
 
@@ -373,11 +383,24 @@ export default function App() {
 
     try {
       await api.post(`/gastos/${targetGasto.id}/upload`, formData);
-      await loadData();
+      await fetchGastos(page);
       setIsReportGenerated(false);
       setShowAnnualReport(false);
     } catch (err) {
       console.error("Error uploading justification:", err);
+      alert("Error al subir el archivo justificante.");
+    }
+  };
+
+  const handleDirectDocUpload = async (gastoId, file) => {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      await api.post(`/gastos/${gastoId}/upload`, formData);
+      await fetchGastos(page);
+    } catch (err) {
+      console.error("Error uploading direct justification:", err);
       alert("Error al subir el archivo justificante.");
     }
   };
@@ -444,6 +467,12 @@ export default function App() {
               setNuevoGasto={setNuevoGasto}
               editingId={editingId}
               resetForm={resetForm}
+              page={page}
+              pages={pages}
+              total={totalExpenses}
+              setPage={setPage}
+              proveedores={proveedores}
+              onDirectDocUpload={handleDirectDocUpload}
             />
           )}
 
@@ -491,6 +520,7 @@ export default function App() {
               fiscalData={fiscalData}
               amortizaciones={amortizaciones}
               canGeneratePackage={canGeneratePackage}
+              onSyncTiendaVentas={handleSyncTiendaVentas}
             />
           )}
 

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 from database import get_session
 from models import Gasto
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import os
 import shutil
 
@@ -12,9 +12,42 @@ router = APIRouter(prefix="/api/gastos", tags=["gastos"])
 UPLOAD_DIR = "uploads/justificantes"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@router.get("", response_model=List[Gasto])
-def list_gastos(session: Session = Depends(get_session)):
-    return session.exec(select(Gasto).order_by(Gasto.fecha.desc())).all()
+@router.get("", response_model=Dict[str, Any])
+def list_gastos(
+    page: int = 1,
+    limit: int = 50,
+    categoria: Optional[str] = None,
+    concepto: Optional[str] = None,
+    session: Session = Depends(get_session)
+):
+    query = select(Gasto)
+    if categoria:
+        query = query.where(Gasto.categoria == categoria)
+    if concepto:
+        query = query.where(Gasto.concepto == concepto)
+        
+    # Count total matching records using a count select query
+    total_query = select(func.count(Gasto.id))
+    if categoria:
+        total_query = total_query.where(Gasto.categoria == categoria)
+    if concepto:
+        total_query = total_query.where(Gasto.concepto == concepto)
+        
+    total = session.exec(total_query).one()
+    
+    # Apply limit and offset
+    offset = (page - 1) * limit
+    items = session.exec(query.order_by(Gasto.fecha.desc()).offset(offset).limit(limit)).all()
+    
+    pages = (total + limit - 1) // limit if limit > 0 else 1
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": pages
+    }
 
 @router.post("", response_model=Gasto)
 def create_gasto(gasto: Gasto, session: Session = Depends(get_session)):

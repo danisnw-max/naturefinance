@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
-  X, Plus, Receipt, CalendarDays, RefreshCcw, Zap, 
-  Percent, ArrowUpRight, ArrowDownRight, Edit3, Trash2, CheckCircle2, AlertTriangle, FileText, Upload
+  X, Plus, Receipt, RefreshCcw, Zap, 
+  Edit3, Trash2, Upload
 } from 'lucide-react';
 
 export default function GastosTab({ 
@@ -15,7 +15,13 @@ export default function GastosTab({
   nuevoGasto,
   setNuevoGasto,
   editingId,
-  resetForm
+  resetForm,
+  page,
+  pages,
+  total,
+  setPage,
+  proveedores,
+  onDirectDocUpload
 }) {
 
   const handleInputChange = (e) => {
@@ -41,7 +47,7 @@ export default function GastosTab({
         </h3>
         <button 
           onClick={() => { if(showForm) resetForm(); setShowForm(!showForm); }} 
-          className="bg-slate-900 text-white px-8 py-4 rounded-[24px] shadow-2xl flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95"
+          className="bg-slate-900 text-white px-8 py-4 rounded-[24px] shadow-2xl flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 cursor-pointer"
         >
           {showForm ? <X size={20} className="text-rose-400" /> : <Plus size={20} className="text-emerald-400" />}
           <span className="font-bold text-sm uppercase tracking-widest">{showForm ? 'Cancelar' : 'Añadir Gasto'}</span>
@@ -65,7 +71,7 @@ export default function GastosTab({
             <button 
               type="button" 
               onClick={() => setNuevoGasto(prev => ({...prev, esAbono: !prev.esAbono}))} 
-              className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shrink-0 ${nuevoGasto.esAbono ? 'bg-rose-500 text-white shadow-lg' : 'bg-white/10 text-indigo-300'}`}
+              className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shrink-0 cursor-pointer ${nuevoGasto.esAbono ? 'bg-rose-500 text-white shadow-lg' : 'bg-white/10 text-indigo-300'}`}
             >
                {nuevoGasto.esAbono ? 'SÍ, ES UN ABONO (Resta)' : 'NO, ES UN GASTO (Suma)'}
             </button>
@@ -116,12 +122,18 @@ export default function GastosTab({
             <input 
               type="text" 
               required 
+              list="proveedores-datalist"
               name="concepto"
-              placeholder="Ej. Iberdrola, Alquiler, Seguridad Social" 
+              placeholder="Escribe o selecciona de la Tienda" 
               value={nuevoGasto.concepto} 
               onChange={handleInputChange} 
               className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500" 
             />
+            <datalist id="proveedores-datalist">
+              {proveedores.map(p => (
+                <option key={p.id} value={p.nombre}>{p.cif ? `${p.nombre} (${p.cif})` : p.nombre}</option>
+              ))}
+            </datalist>
           </div>
 
           <div className="col-span-1 md:col-span-3 z-10">
@@ -207,7 +219,7 @@ export default function GastosTab({
               <button 
                 type="button" 
                 onClick={() => setNuevoGasto(prev => ({...prev, esInversion: !prev.esInversion}))} 
-                className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${nuevoGasto.esInversion ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'bg-white/10 text-emerald-400'}`}
+                className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all cursor-pointer ${nuevoGasto.esInversion ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'bg-white/10 text-emerald-400'}`}
               >
                 {nuevoGasto.esInversion ? 'SÍ, CREAR COMO INVERSIÓN' : 'NO, ES UN GASTO CORRIENTE'}
               </button>
@@ -218,13 +230,13 @@ export default function GastosTab({
             <button 
               type="button" 
               onClick={() => { resetForm(); setShowForm(false); }} 
-              className="bg-white/5 border border-white/10 px-8 py-4 rounded-[20px] text-xs hover:bg-white/10 transition-colors"
+              className="bg-white/5 border border-white/10 px-8 py-4 rounded-[20px] text-xs hover:bg-white/10 transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button 
               type="submit" 
-              className="bg-emerald-500 text-slate-900 px-10 py-4 rounded-[20px] text-xs hover:bg-emerald-400 shadow-xl transition-all hover:scale-[1.02]"
+              className="bg-emerald-500 text-slate-900 px-10 py-4 rounded-[20px] text-xs hover:bg-emerald-400 shadow-xl transition-all hover:scale-[1.02] cursor-pointer"
             >
               {editingId ? 'Guardar Cambios' : 'Añadir Registro'}
             </button>
@@ -240,7 +252,7 @@ export default function GastosTab({
               Registros en el Periodo
             </h4>
             <span className="text-[10px] text-slate-400 uppercase tracking-widest">
-              Total: {gastos.length} operaciones
+              Mostrando página {page} de {pages} (Total: {total} operaciones)
             </span>
           </div>
         </div>
@@ -281,15 +293,21 @@ export default function GastosTab({
                         Día cobro: {g.diaCobro}
                       </span>
                     </td>
-                    <td className="py-8 px-10 text-center shrink-0">
+                    <td className="py-8 px-10 text-center">
                       {g.justificante_filename ? (
                         <span className="text-emerald-500 font-black text-[10px] uppercase bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">
                           Subido
                         </span>
                       ) : (
-                        <span className="text-rose-400 font-black text-[10px] uppercase bg-rose-500/10 px-3 py-1 rounded-xl border border-rose-500/20">
-                          Pendiente
-                        </span>
+                        <label className="cursor-pointer text-indigo-500 hover:text-indigo-700 font-black text-[10px] uppercase bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-200 transition-all flex items-center justify-center gap-1 w-fit mx-auto">
+                          <Upload size={12} /> Subir PDF
+                          <input 
+                            type="file" 
+                            accept="application/pdf,image/*"
+                            className="hidden" 
+                            onChange={(e) => onDirectDocUpload(g.id, e.target.files[0])} 
+                          />
+                        </label>
                       )}
                     </td>
                     <td className="py-8 px-10 text-center">
@@ -316,14 +334,14 @@ export default function GastosTab({
                       <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => onEditGasto(g)} 
-                          className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                          className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
                           title="Editar"
                         >
                           <Edit3 size={16} />
                         </button>
                         <button 
                           onClick={() => onDeleteGasto(g.id)} 
-                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
                           title="Eliminar"
                         >
                           <Trash2 size={16} />
@@ -336,6 +354,28 @@ export default function GastosTab({
             </tbody>
           </table>
         </div>
+
+        {/* PAGINATION CONTROLS */}
+        <div className="p-8 border-t border-slate-100 flex justify-between items-center text-xs font-black uppercase tracking-widest text-slate-400 bg-slate-50/50">
+          <span>Página {page} de {pages}</span>
+          <div className="flex gap-4">
+            <button 
+              disabled={page === 1} 
+              onClick={() => setPage(page - 1)}
+              className="px-4 py-2 border border-slate-200 rounded-xl hover:bg-white hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              Anterior
+            </button>
+            <button 
+              disabled={page === pages} 
+              onClick={() => setPage(page + 1)}
+              className="px-4 py-2 border border-slate-200 rounded-xl hover:bg-white hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );
