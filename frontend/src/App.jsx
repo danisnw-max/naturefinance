@@ -74,6 +74,13 @@ export default function App() {
   const [showAnnualReport, setShowAnnualReport] = useState(false);
   const [gestoriaFiles, setGestoriaFiles] = useState({ ventas: null, ticketbai: null });
 
+  const currentQuarterNumber = useMemo(() => {
+    const month = new Date().getMonth() + 1;
+    return month <= 3 ? 1 : month <= 6 ? 2 : month <= 9 ? 3 : 4;
+  }, []);
+
+  const [selectedQuarter, setSelectedQuarter] = useState(currentQuarterNumber);
+
   // Strategic sliders
   const [simExtraCost, setSimExtraCost] = useState(0); 
   const [simPriceChange, setSimPriceChange] = useState(0); 
@@ -143,14 +150,21 @@ export default function App() {
   useEffect(() => {
     const fetchFiscalSummary = async () => {
       try {
-        const summary = await api.get(`/reports/fiscal-summary?simExtraCost=${simExtraCost}&simPriceChange=${simPriceChange}`);
+        const queryParams = [
+          `simExtraCost=${simExtraCost}`,
+          `simPriceChange=${simPriceChange}`
+        ];
+        if (selectedQuarter !== null) {
+          queryParams.push(`quarter=${selectedQuarter}`);
+        }
+        const summary = await api.get(`/reports/fiscal-summary?${queryParams.join('&')}`);
         setFiscalData(summary);
       } catch (err) {
         console.error("Error fetching fiscal summary:", err);
       }
     };
     fetchFiscalSummary();
-  }, [simExtraCost, simPriceChange, gastos, configFiscal]);
+  }, [simExtraCost, simPriceChange, selectedQuarter, gastos, configFiscal]);
 
   const amortizaciones = useMemo(() => {
     const anual = inversiones.reduce((acc, inv) => inv.vidaUtil > 0 ? acc + (inv.importe / inv.vidaUtil) : acc, 0);
@@ -198,7 +212,7 @@ export default function App() {
   }, []);
 
   const allDocsUploaded = useMemo(() => gastosAgrupados.length > 0 && gastosAgrupados.every(grupo => uploadedDocs[grupo.proveedor]), [gastosAgrupados, uploadedDocs]);
-  const canGeneratePackage = useMemo(() => gestoriaFiles.ventas && allDocsUploaded, [gestoriaFiles, allDocsUploaded]);
+  const canGeneratePackage = true; // Sincronización directa y automatizada activa
 
   // Handlers
   const resetForm = () => {
@@ -337,10 +351,19 @@ export default function App() {
 
   const handleSyncTiendaVentas = async () => {
     try {
-      const res = await api.post('/ventas/sync-tienda');
-      // Update configFiscal locally
-      setConfigFiscal(prev => ({ ...prev, ingresosTotales: res.ingresosTotales }));
-      setGestoriaFiles(prev => ({ ...prev, ventas: "Sincronizado de Tienda" }));
+      const query = selectedQuarter ? `?quarter=${selectedQuarter}` : '';
+      const res = await api.post(`/ventas/sync-tienda${query}`);
+      // Reload reports
+      const queryParams = [
+        `simExtraCost=${simExtraCost}`,
+        `simPriceChange=${simPriceChange}`
+      ];
+      if (selectedQuarter !== null) {
+        queryParams.push(`quarter=${selectedQuarter}`);
+      }
+      const summary = await api.get(`/reports/fiscal-summary?${queryParams.join('&')}`);
+      setFiscalData(summary);
+      setGestoriaFiles(prev => ({ ...prev, ventas: `Sincronizado de Tienda (${selectedQuarter ? `${selectedQuarter}T` : 'Anual'})` }));
       setIsReportGenerated(false);
       setShowAnnualReport(false);
       alert("¡Ventas sincronizadas exitosamente con la base de datos de la tienda!");
@@ -528,6 +551,8 @@ export default function App() {
               amortizaciones={amortizaciones}
               canGeneratePackage={canGeneratePackage}
               onSyncTiendaVentas={handleSyncTiendaVentas}
+              selectedQuarter={selectedQuarter}
+              setSelectedQuarter={setSelectedQuarter}
             />
           )}
 

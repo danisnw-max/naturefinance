@@ -18,7 +18,9 @@ export default function GestoriaTab({
   fiscalData,
   amortizaciones,
   canGeneratePackage,
-  onSyncTiendaVentas
+  onSyncTiendaVentas,
+  selectedQuarter,
+  setSelectedQuarter
 }) {
 
   const SummaryRow = ({ label, value, highlight }) => {
@@ -41,27 +43,67 @@ export default function GestoriaTab({
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
         <div className="relative z-10 max-w-4xl">
           
-          <div className="flex items-center gap-4 mb-8 leading-none">
-            <div className="bg-emerald-50 text-slate-900 p-3 rounded-2xl">
-              <FolderLock size={32} />
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-8 border-b border-white/5 pb-6">
+            <div className="flex items-center gap-4 leading-none">
+              <div className="bg-emerald-50 text-slate-900 p-3 rounded-2xl">
+                <FolderLock size={32} />
+              </div>
+              <h3 className="text-4xl font-black tracking-tighter italic uppercase tracking-widest">Portal de Cierre</h3>
             </div>
-            <h3 className="text-4xl font-black tracking-tighter italic uppercase tracking-widest">Portal de Cierre</h3>
+            
+            {/* Quarter Selector */}
+            <div className="flex flex-wrap gap-2 p-1.5 bg-white/5 rounded-2xl border border-white/5">
+              {[1, 2, 3, 4].map(q => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => {
+                    setSelectedQuarter(q);
+                    setIsReportGenerated(false);
+                    setShowAnnualReport(false);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all cursor-pointer ${selectedQuarter === q ? 'bg-emerald-500 text-slate-900 shadow-md' : 'text-slate-400 hover:text-white'}`}
+                >
+                  T{q}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedQuarter(null);
+                  setIsReportGenerated(false);
+                  setShowAnnualReport(false);
+                }}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all cursor-pointer ${selectedQuarter === null ? 'bg-emerald-500 text-slate-900 shadow-md' : 'text-slate-400 hover:text-white'}`}
+              >
+                Anual
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
             <div className="flex flex-col gap-4">
-              <ImportBox 
-                label="Ventas Natura ERP" 
-                status={gestoriaFiles.ventas} 
-                onUpload={(e) => onGestoriaUpload('ventas', e)} 
-                desc="CSV de ingresos devengados." 
-              />
+              <div className="p-8 rounded-[32px] border border-emerald-500/30 bg-emerald-950/40 shadow-lg uppercase relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl" />
+                <div className="flex justify-between items-start mb-4 leading-none relative z-10">
+                  <h4 className="font-black italic text-xs tracking-widest text-slate-400">Ventas Natura ERP</h4>
+                  <span className="bg-emerald-500/10 text-emerald-400 text-[8px] font-black px-2.5 py-1 rounded-lg border border-emerald-500/20 uppercase tracking-widest leading-none">
+                    Conectado
+                  </span>
+                </div>
+                <div className="text-4xl font-black text-white tracking-tighter mb-2 relative z-10 leading-none">
+                  {fiscalData.adjustedIngresos.toLocaleString('es-ES')} €
+                </div>
+                <p className="text-[9px] text-slate-500 font-bold tracking-widest leading-none normal-case relative z-10">
+                  Importado directamente para el {selectedQuarter ? `${selectedQuarter}º Trimestre 2026` : 'año 2026'}.
+                </p>
+              </div>
               <button 
                 type="button" 
                 onClick={onSyncTiendaVentas}
-                className="w-full bg-indigo-600 text-white py-4 rounded-[24px] shadow-lg font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-500 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                className="w-full bg-white/5 hover:bg-white/10 text-white py-4 rounded-[24px] border border-white/5 font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-95 transition-all cursor-pointer"
               >
-                <RefreshCcw size={16} /> Sincronizar Ventas de Tienda
+                <RefreshCcw size={14} /> Forzar Sincronización
               </button>
             </div>
             <ImportBox 
