@@ -64,12 +64,41 @@ def download_justificantes_zip(
             if os.path.exists(file_path):
                 files_to_zip.append((file_path, g.justificante_filename))
 
-    if not files_to_zip:
-        raise HTTPException(status_code=404, detail="No se encontraron justificantes fisicos para este periodo.")
+    # Fetch fiscal summary to put in the text file
+    summary = get_fiscal_summary(quarter=quarter, year=year, session=session)
+    
+    # Create the text summary content
+    resumen_text = f"RESUMEN DE FACTURACION Y CONTABILIDAD - {year}\n"
+    resumen_text += f"Periodo: {f'{quarter} Trimestre' if quarter else 'Anual'}\n"
+    resumen_text += "="*50 + "\n\n"
+    resumen_text += f"1. INGRESOS (VENTAS NATURAERP):\n"
+    resumen_text += f"   Total Ingresos Brutos: {summary['adjustedIngresos']:.2f} EUR\n"
+    resumen_text += f"   Base Imponible: {summary['ventasBase']:.2f} EUR\n"
+    resumen_text += f"   IVA Devengado (10%): {summary['ivaVentas']:.2f} EUR\n\n"
+    
+    resumen_text += f"2. GASTOS Y COMPRAS:\n"
+    resumen_text += f"   Total Gastos Brutos: {summary['totalGastos']:.2f} EUR\n"
+    resumen_text += f"   Base Imponible Deducible: {summary['baseGastosDeducible']:.2f} EUR\n"
+    resumen_text += f"   IVA Soportado Deducible: {summary['ivaGastos']:.2f} EUR\n\n"
+    
+    resumen_text += f"3. LIQUIDACION ESTIMADA:\n"
+    resumen_text += f"   Resultado IVA (Modelo 303): {summary['balanceIVA']:.2f} EUR\n"
+    resumen_text += f"   Provision IRPF (Modelo 130): {summary['provisionIRPF']:.2f} EUR\n"
+    resumen_text += f"   Rendimiento Neto: {summary['rendimientoNeto']:.2f} EUR\n"
+    resumen_text += f"   Beneficio Real Estimado: {summary['beneficioReal']:.2f} EUR\n\n"
+    
+    resumen_text += f"4. DETALLE DE GASTOS REGISTRADOS:\n"
+    for g in gastos:
+        resumen_text += f"   - [{g.fecha}] {g.concepto} ({g.categoria}): {g.importe:.2f} EUR (IVA: {g.iva}%) "
+        resumen_text += f"[Justificante: {g.justificante_filename or 'No adjunto'}]\n"
 
     # Create ZIP in memory
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        # Write the text summary first
+        zip_file.writestr("resumen_periodo.txt", resumen_text)
+        
+        # Write any uploaded justification PDFs
         for file_path, arcname in files_to_zip:
             zip_file.write(file_path, arcname)
 
