@@ -31,7 +31,7 @@ class FiscalPDF(FPDF):
         self.set_y(-15)
         self.set_font("Helvetica", "I", 8)
         self.set_text_color(128, 128, 128)
-        self.cell(0, 10, f"Página {self.page_no()}/{{nb}} - NaturaFinance Accounting Intelligence", align="C")
+        self.cell(0, 10, f"Pagina {self.page_no()}/{{nb}} - NaturaFinance Accounting Intelligence", align="C")
 
 @router.get("/justificantes-zip")
 def download_justificantes_zip(
@@ -65,7 +65,7 @@ def download_justificantes_zip(
                 files_to_zip.append((file_path, g.justificante_filename))
 
     if not files_to_zip:
-        raise HTTPException(status_code=404, detail="No se encontraron justificantes físicos para este periodo.")
+        raise HTTPException(status_code=404, detail="No se encontraron justificantes fisicos para este periodo.")
 
     # Create ZIP in memory
     zip_buffer = io.BytesIO()
@@ -104,8 +104,8 @@ def download_modelo_303_pdf(
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(0, 6, f"Titular: {config.titular if config else 'N/A'}", ln=True)
     pdf.cell(0, 6, f"NIF: {config.nif if config else 'N/A'}", ln=True)
-    pdf.cell(0, 6, f"Dirección Fiscal: {config.direccion if config else 'N/A'}", ln=True)
-    pdf.cell(0, 6, f"Periodo: {quarter}º Trimestre {year}" if quarter else f"Periodo: Anual {year}", ln=True)
+    pdf.cell(0, 6, f"Direccion Fiscal: {config.direccion if config else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"Periodo: {quarter}o Trimestre {year}" if quarter else f"Periodo: Anual {year}", ln=True)
     pdf.ln(10)
 
     # IVA Repercutido
@@ -113,9 +113,9 @@ def download_modelo_303_pdf(
     pdf.cell(0, 8, "2. IVA REPERCUTIDO (INGRESOS)", ln=True)
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(100, 8, "Base Imponible de Ventas:", border="B")
-    pdf.cell(0, 8, f"{summary['ventasBase']:.2f} €", border="B", ln=True, align="R")
+    pdf.cell(0, 8, f"{summary['ventasBase']:.2f} EUR", border="B", ln=True, align="R")
     pdf.cell(100, 8, "Cuota de IVA Devengado (10%):", border="B")
-    pdf.cell(0, 8, f"{summary['ivaVentas']:.2f} €", border="B", ln=True, align="R")
+    pdf.cell(0, 8, f"{summary['ivaVentas']:.2f} EUR", border="B", ln=True, align="R")
     pdf.ln(8)
 
     # IVA Soportado
@@ -123,24 +123,24 @@ def download_modelo_303_pdf(
     pdf.cell(0, 8, "3. IVA SOPORTADO (GASTOS)", ln=True)
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(100, 8, "Base Imponible Gastos Deducibles:", border="B")
-    pdf.cell(0, 8, f"{summary['baseGastosDeducible']:.2f} €", border="B", ln=True, align="R")
+    pdf.cell(0, 8, f"{summary['baseGastosDeducible']:.2f} EUR", border="B", ln=True, align="R")
     pdf.cell(100, 8, "Cuota de IVA Soportado Deducible:", border="B")
-    pdf.cell(0, 8, f"{summary['ivaGastos']:.2f} €", border="B", ln=True, align="R")
+    pdf.cell(0, 8, f"{summary['ivaGastos']:.2f} EUR", border="B", ln=True, align="R")
     pdf.ln(8)
 
     # Result
     pdf.ln(5)
     pdf.set_fill_color(241, 245, 249)
     pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(100, 12, "RESULTADO DE LA LIQUIDACIÓN:", fill=True)
+    pdf.cell(100, 12, "RESULTADO DE LA LIQUIDACION:", fill=True)
     
     balance = summary['balanceIVA']
     if balance > 0:
         pdf.set_text_color(180, 83, 9)  # Amber
-        result_text = f"A ingresar: {balance:.2f} €"
+        result_text = f"A ingresar: {balance:.2f} EUR"
     else:
         pdf.set_text_color(4, 120, 87)  # Emerald
-        result_text = f"A compensar: {abs(balance):.2f} €"
+        result_text = f"A compensar: {abs(balance):.2f} EUR"
 
     pdf.cell(0, 12, result_text, fill=True, ln=True, align="R")
 
@@ -179,41 +179,41 @@ def download_modelo_130_pdf(
     pdf.cell(0, 6, f"Titular: {config.titular if config else 'N/A'}", ln=True)
     pdf.cell(0, 6, f"NIF: {config.nif if config else 'N/A'}", ln=True)
     pdf.cell(0, 6, f"Actividad: {config.epigrafe if config else 'N/A'}", ln=True)
-    pdf.cell(0, 6, f"Periodo: {quarter}º Trimestre {year}" if quarter else f"Periodo: Anual {year}", ln=True)
+    pdf.cell(0, 6, f"Periodo: {quarter}o Trimestre {year}" if quarter else f"Periodo: Anual {year}", ln=True)
     pdf.ln(10)
 
     # IRPF calculations
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "2. CÓMPUTO DEL RENDIMIENTO NETO (IRPF BIZKAIA)", ln=True)
+    pdf.cell(0, 8, "2. COMPUTO DEL RENDIMIENTO NETO (IRPF BIZKAIA)", ln=True)
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(100, 8, "(+) Ingresos Computables (Ventas base):", border="B")
-    pdf.cell(0, 8, f"{summary['ventasBase']:.2f} €", border="B", ln=True, align="R")
+    pdf.cell(0, 8, f"{summary['ventasBase']:.2f} EUR", border="B", ln=True, align="R")
     pdf.cell(100, 8, "(-) Gastos Computables (Gastos base):", border="B")
-    pdf.cell(0, 8, f"{summary['baseGastosDeducible']:.2f} €", border="B", ln=True, align="R")
-    pdf.cell(100, 8, "(-) Variación de Existencias (Stock COGS):", border="B")
-    pdf.cell(0, 8, f"{summary['variacionExistencias']:.2f} €", border="B", ln=True, align="R")
+    pdf.cell(0, 8, f"{summary['baseGastosDeducible']:.2f} EUR", border="B", ln=True, align="R")
+    pdf.cell(100, 8, "(-) Variacion de Existencias (Stock COGS):", border="B")
+    pdf.cell(0, 8, f"{summary['variacionExistencias']:.2f} EUR", border="B", ln=True, align="R")
     pdf.cell(100, 8, "(=) Rendimiento Neto Previo:", border="B")
-    pdf.cell(0, 8, f"{summary['rendimientoNetoPrevio']:.2f} €", border="B", ln=True, align="R")
-    pdf.cell(100, 8, "(-) 10% Gastos Difícil Justificación:", border="B")
-    pdf.cell(0, 8, f"-{summary['gastoDificilJustificacion']:.2f} €", border="B", ln=True, align="R")
+    pdf.cell(0, 8, f"{summary['rendimientoNetoPrevio']:.2f} EUR", border="B", ln=True, align="R")
+    pdf.cell(100, 8, "(-) 10% Gastos Dificil Justificacion:", border="B")
+    pdf.cell(0, 8, f"-{summary['gastoDificilJustificacion']:.2f} EUR", border="B", ln=True, align="R")
     
     pdf.set_font("Helvetica", "B", 10)
     pdf.cell(100, 10, "(=) RENDIMIENTO NETO FINAL DEL PERIODO:", border="B")
-    pdf.cell(0, 10, f"{summary['rendimientoNeto']:.2f} €", border="B", ln=True, align="R")
+    pdf.cell(0, 10, f"{summary['rendimientoNeto']:.2f} EUR", border="B", ln=True, align="R")
     pdf.ln(8)
 
-    # Liquidación Modelo 130
+    # Liquidacion Modelo 130
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "3. LIQUIDACIÓN - MODELO 130", ln=True)
+    pdf.cell(0, 8, "3. LIQUIDACION - MODELO 130", ln=True)
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(100, 8, "Pago Fraccionado Proyectado (20%):", border="B")
-    pdf.cell(0, 8, f"{summary['provisionIRPF']:.2f} €", border="B", ln=True, align="R")
+    pdf.cell(0, 8, f"{summary['provisionIRPF']:.2f} EUR", border="B", ln=True, align="R")
 
     pdf.ln(5)
     pdf.set_fill_color(241, 245, 249)
     pdf.set_font("Helvetica", "B", 14)
     pdf.cell(100, 12, "PAGO A CUENTA TRIMESTRAL (IRPF):", fill=True)
-    pdf.cell(0, 12, f"{summary['provisionIRPF']:.2f} €", fill=True, ln=True, align="R")
+    pdf.cell(0, 12, f"{summary['provisionIRPF']:.2f} EUR", fill=True, ln=True, align="R")
 
     # Output to buffer
     pdf_buffer = io.BytesIO()
