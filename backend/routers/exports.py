@@ -9,6 +9,7 @@ import zipfile
 import io
 import os
 import xml.etree.ElementTree as ET
+import sqlite3
 from fpdf import FPDF
 from datetime import datetime
 
