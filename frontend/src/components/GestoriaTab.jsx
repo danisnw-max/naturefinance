@@ -225,15 +225,19 @@ export default function GestoriaTab({
             </div>
             <div className="flex flex-col sm:flex-row gap-4 font-black tracking-wider text-[10px] uppercase">
               <a 
-                href="#"
-                onClick={(e) => { e.preventDefault(); alert("Descargando lote de justificantes en formato ZIP..."); }}
+                href={`http://localhost:8001/api/exports/justificantes-zip${selectedQuarter ? `?quarter=${selectedQuarter}` : ''}`}
                 className="bg-slate-900 text-white px-8 py-5 rounded-2xl font-black hover:bg-slate-800 shadow-xl transition-colors flex items-center gap-3"
               >
                 <FileText size={16} /> Descargar justificantes (ZIP)
               </a>
               <a 
-                href="#"
-                onClick={(e) => { e.preventDefault(); alert("Generando Modelo 140 (XML de Bizkaia)..."); }}
+                href={`http://localhost:8001/api/exports/modelo-303-pdf${selectedQuarter ? `?quarter=${selectedQuarter}` : ''}`}
+                className="bg-emerald-600 text-white px-8 py-5 rounded-2xl font-black hover:bg-emerald-500 shadow-xl transition-colors flex items-center gap-3"
+              >
+                <FileText size={16} /> Descargar Borrador 303 (PDF)
+              </a>
+              <a 
+                href={`http://localhost:8001/api/exports/lroe-xml${selectedQuarter ? `?quarter=${selectedQuarter}` : ''}`}
                 className="bg-indigo-600 text-white px-8 py-5 rounded-2xl font-black hover:bg-indigo-500 shadow-xl transition-colors flex items-center gap-3"
               >
                 <FileCheck2 size={16} /> Generar LROE XML (Mod. 140)
@@ -295,16 +299,20 @@ export default function GestoriaTab({
             </div>
             <div className="flex flex-col sm:flex-row gap-4 font-black text-[10px] tracking-widest">
               <a 
-                href="#"
-                onClick={(e) => { e.preventDefault(); alert("Descargando lote anual XML y PDF..."); }}
+                href="http://localhost:8001/api/exports/justificantes-zip"
                 className="bg-slate-900 text-white px-8 py-5 rounded-2xl font-black hover:bg-slate-800 shadow-xl transition-colors flex items-center gap-3"
               >
-                <FileText size={16} /> Descargar Lote Cierre
+                <FileText size={16} /> Descargar Lote Cierre (ZIP)
               </a>
               <a 
-                href="#"
-                onClick={(e) => { e.preventDefault(); alert("Generando Modelos 140 y 390 oficiales (XML)..."); }}
-                className="bg-emerald-900 text-white px-8 py-5 rounded-2xl font-black hover:bg-emerald-800 transition-colors flex items-center gap-3"
+                href="http://localhost:8001/api/exports/modelo-130-pdf"
+                className="bg-emerald-600 text-white px-8 py-5 rounded-2xl font-black hover:bg-emerald-500 shadow-xl transition-colors flex items-center gap-3"
+              >
+                <FileText size={16} /> Descargar Borrador 130 (PDF)
+              </a>
+              <a 
+                href="http://localhost:8001/api/exports/lroe-xml"
+                className="bg-indigo-900 text-white px-8 py-5 rounded-2xl font-black hover:bg-indigo-800 transition-colors flex items-center gap-3"
               >
                 <FileCheck2 size={16} /> Generar XML Hacienda Foral
               </a>
