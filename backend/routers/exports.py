@@ -92,11 +92,40 @@ def download_justificantes_zip(
         resumen_text += f"   - [{g.fecha}] {g.concepto} ({g.categoria}): {g.importe:.2f} EUR (IVA: {g.iva}%) "
         resumen_text += f"[Justificante: {g.justificante_filename or 'No adjunto'}]\n"
 
+    # Fetch sales details from store DB if available to include as CSV
+    ventas_csv_content = "ID_Ticket,Fecha,Subtotal,IVA,Total\n"
+    if os.path.exists(TIENDA_DB_PATH):
+        try:
+            conn = sqlite3.connect(TIENDA_DB_PATH)
+            cursor = conn.cursor()
+            if quarter is not None:
+                if quarter == 1:
+                    start_date, end_date = f"{year}-01-01", f"{year}-03-31T23:59:59"
+                elif quarter == 2:
+                    start_date, end_date = f"{year}-04-01", f"{year}-06-30T23:59:59"
+                elif quarter == 3:
+                    start_date, end_date = f"{year}-07-01", f"{year}-09-30T23:59:59"
+                else:
+                    start_date, end_date = f"{year}-10-01", f"{year}-12-31T23:59:59"
+                cursor.execute("SELECT id, date, subtotal, total_iva, total FROM venta WHERE date >= ? AND date <= ?", (start_date, end_date))
+            else:
+                cursor.execute("SELECT id, date, subtotal, total_iva, total FROM venta WHERE date >= ? AND date <= ?", (f"{year}-01-01", f"{year}-12-31T23:59:59"))
+            
+            rows = cursor.fetchall()
+            conn.close()
+            for r in rows:
+                ventas_csv_content += f"{r[0]},{r[1]},{r[2]:.2f},{r[3]:.2f},{r[4]:.2f}\n"
+        except Exception as e:
+            print(f"Error querying sales for CSV: {e}")
+
     # Create ZIP in memory
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
         # Write the text summary first
         zip_file.writestr("resumen_periodo.txt", resumen_text)
+        
+        # Write the sales detailed CSV
+        zip_file.writestr("ventas_detalle.csv", ventas_csv_content)
         
         # Write any uploaded justification PDFs
         for file_path, arcname in files_to_zip:
