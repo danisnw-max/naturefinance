@@ -5,6 +5,30 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-07-16
+
+### Añadido
+- **Motor de Exportación Real (`backend/routers/exports.py`)**: Nuevo enrutador FastAPI que reemplaza completamente los botones de alerta de descarga del Portal de Gestoría por ficheros reales generados en servidor.
+  - `GET /api/exports/justificantes-zip`: Genera y descarga un archivo `.zip` con todos los justificantes físicos del periodo seleccionado, un resumen de facturación en `.txt` y un listado de tickets de venta en `.csv` consultado directamente de la BBDD de NaturaERP.
+  - `GET /api/exports/modelo-303-pdf`: Genera un PDF oficial del borrador del **Modelo 303** (IVA Trimestral) con datos calculados en tiempo real (NIF, titular, bases imponibles, cuotas, resultado de liquidación).
+  - `GET /api/exports/modelo-130-pdf`: Genera un PDF oficial del borrador del **Modelo 130** (Pago Fraccionado de IRPF) con rendimiento neto y pago a cuenta trimestral.
+  - `GET /api/exports/lroe-xml`: Genera el fichero XML oficial del **Capítulo 2 (Gastos con Factura Recibida)** del **Libro Registro de Operaciones Económicas (LROE) - Modelo 140** de Bizkaia, compatible con el portal [batuz.eus](https://www.batuz.eus).
+- **Integración Contable al Recibir Pedidos (NaturaERP)**: Al verificar la llegada de un pedido en el módulo de *Gestión de Pedidos* de la tienda, el modal de recepción ahora incluye un campo obligatorio para adjuntar la **factura del proveedor en PDF**. Al validar el stock, el sistema envía automáticamente:
+  - Una nueva entrada al **Libro de Gastos** de NaturaFinance (categoría *Compras y Aprovisionamientos*, con importe calculado a precio de coste real).
+  - El archivo PDF de la factura, vinculado al registro del gasto como justificante oficial.
+- **Librería fpdf2**: Instalada en el entorno virtual del backend para la generación de PDFs.
+- **Librería sqlite3**: Importada en el router de exportaciones para consulta directa de la BBDD de la tienda.
+
+### Cambiado
+- **Portal de Gestoría – Botones de Descarga**: Todos los `alert()` de marcador de posición han sido reemplazados por enlaces directos a los nuevos endpoints de la API de exportación, con parámetros de trimestre/año dinámicos.
+- **ZIP de Justificantes**: El botón ya no devuelve un 404 cuando no hay PDFs físicos subidos; en su lugar, siempre genera un ZIP con el resumen de actividad del periodo.
+- **Cabecera CSV de Ventas**: Cambiada de `ID_Ticket` a `Ticket_ID` para evitar el falso positivo de seguridad del formato SYLK en Microsoft Excel.
+
+### Corregido
+- `NameError: name 'TIENDA_DB_PATH' is not defined` en `exports.py` al consultar ventas de la tienda.
+- `NameError: name 'sqlite3' is not defined` en `exports.py` al intentar conectar con la BBDD de la tienda.
+- `UnicodeEncodeError` por el símbolo de Euro (`€`) y tildes en la generación de PDFs con FPDF2 (fuentes core Latin-1), resuelto sustituyendo `€` por `EUR` y eliminando caracteres fuera del rango ASCII-256.
+
 ## [1.0.0] - 2026-07-15
 
 ### Añadido
