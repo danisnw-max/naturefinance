@@ -95,7 +95,7 @@ def download_justificantes_zip(
         resumen_text += f"[Justificante: {g.justificante_filename or 'No adjunto'}]\n"
 
     # Fetch sales details from store DB if available to include as CSV
-    ventas_csv_content = "ID_Ticket,Fecha,Subtotal,IVA,Total\n"
+    ventas_csv_content = "Ticket_ID,Fecha,Subtotal,IVA,Total\n"
     if os.path.exists(TIENDA_DB_PATH):
         try:
             conn = sqlite3.connect(TIENDA_DB_PATH)
