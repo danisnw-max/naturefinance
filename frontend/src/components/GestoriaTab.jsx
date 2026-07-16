@@ -198,7 +198,7 @@ export default function GestoriaTab({
               <ShieldCheck size={48} className="text-emerald-500 shrink-0" />
               <div>
                 <h4 className="text-3xl font-black tracking-tighter italic uppercase leading-none text-slate-900">Borrador Modelo 303 (IVA)</h4>
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Listo para enviar a la Gestoría (Con {gastos.length} facturas vinculadas)</p>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Listo para enviar a la Gestoría (Con {gastos?.length ?? 0} facturas vinculadas)</p>
               </div>
             </div>
           </div>
@@ -206,21 +206,21 @@ export default function GestoriaTab({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 normal-case font-semibold text-slate-700">
             <div className="space-y-4">
               <h5 className="text-[10px] font-black uppercase tracking-widest text-emerald-500 border-b pb-4 leading-none italic">IVA Repercutido (Ventas)</h5>
-              <SummaryRow label="Base Imponible Ventas" value={fiscalData.ventasBase} />
-              <SummaryRow label="Cuota IVA Devengado" value={fiscalData.ivaVentas} highlight />
+              <SummaryRow label="Base Imponible Ventas" value={fiscalData?.ventasBase} />
+              <SummaryRow label="Cuota IVA Devengado" value={fiscalData?.ivaVentas} highlight />
             </div>
             <div className="space-y-4">
               <h5 className="text-[10px] font-black uppercase tracking-widest text-rose-500 border-b pb-4 leading-none italic">IVA Soportado (Gastos)</h5>
-              <SummaryRow label="Base Imponible Gastos" value={fiscalData.baseGastosDeducible} />
-              <SummaryRow label="Cuota IVA Deducible" value={fiscalData.ivaGastos} highlight />
+              <SummaryRow label="Base Imponible Gastos" value={fiscalData?.baseGastosDeducible} />
+              <SummaryRow label="Cuota IVA Deducible" value={fiscalData?.ivaGastos} highlight />
             </div>
           </div>
           
           <div className="mt-12 pt-12 border-t flex flex-col md:flex-row justify-between items-center gap-8">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2 leading-none">Resultado de Liquidación</p>
-              <p className={`text-7xl font-black tracking-tighter leading-none ${fiscalData.balanceIVA > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                {fiscalData.balanceIVA.toLocaleString('es-ES')} €
+              <p className={`text-7xl font-black tracking-tighter leading-none ${(fiscalData?.balanceIVA ?? 0) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                {(fiscalData?.balanceIVA ?? 0).toLocaleString('es-ES')} €
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 font-black tracking-wider text-[10px] uppercase">
@@ -258,40 +258,40 @@ export default function GestoriaTab({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-slate-700 normal-case font-medium">
             <div className="space-y-4">
               <h5 className="text-[10px] font-black uppercase tracking-widest text-emerald-900 border-b border-emerald-900/20 pb-4 leading-none italic">Resumen IRPF (Bizkaia)</h5>
-              <SummaryRow label="Ingresos Anuales" value={fiscalData.ventasBase} />
-              <SummaryRow label="Gastos Deducibles (Fra.)" value={fiscalData.baseGastosDeducible} />
+              <SummaryRow label="Ingresos Anuales" value={fiscalData?.ventasBase} />
+              <SummaryRow label="Gastos Deducibles (Fra.)" value={fiscalData?.baseGastosDeducible} />
               
               <div className="flex justify-between items-center py-2 uppercase font-black">
                 <span className="text-[10px] font-black text-slate-500 tracking-widest leading-none">Ajuste Variación Stock (COGS)</span>
-                <span className={`font-black tracking-tighter leading-none text-lg ${fiscalData.variacionExistencias > 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                  {fiscalData.variacionExistencias > 0 ? '+' : ''}{(fiscalData.variacionExistencias || 0).toLocaleString('es-ES')} €
+                <span className={`font-black tracking-tighter leading-none text-lg ${(fiscalData?.variacionExistencias ?? 0) > 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                  {(fiscalData?.variacionExistencias ?? 0) > 0 ? '+' : ''}{(fiscalData?.variacionExistencias ?? 0).toLocaleString('es-ES')} €
                 </span>
               </div>
 
-              <SummaryRow label="Amortizaciones Obra y Activos" value={amortizaciones.anual} />
+              <SummaryRow label="Amortizaciones Obra y Activos" value={amortizaciones?.anual} />
               
               <div className="flex justify-between items-center py-3 bg-emerald-200/50 px-4 rounded-xl border border-emerald-300 mt-2 font-black uppercase">
                 <div className="flex items-center gap-2">
                   <Calculator size={14} className="text-emerald-700" />
                   <span className="text-[10px] font-black tracking-widest text-emerald-800">10% Difícil Justif.</span>
                 </div>
-                <span className="font-black text-emerald-800 text-lg tracking-tighter">-{ (fiscalData.gastoDificilJustificacion || 0).toLocaleString('es-ES') } €</span>
+                <span className="font-black text-emerald-800 text-lg tracking-tighter">-{(fiscalData?.gastoDificilJustificacion ?? 0).toLocaleString('es-ES')} €</span>
               </div>
               
-              <SummaryRow label="Rendimiento Neto Final" value={fiscalData.rendimientoNeto} highlight />
+              <SummaryRow label="Rendimiento Neto Final" value={fiscalData?.rendimientoNeto} highlight />
             </div>
             <div className="space-y-4">
               <h5 className="text-[10px] font-black uppercase tracking-widest text-emerald-900 border-b border-emerald-900/20 pb-4 leading-none italic">Resumen IVA (390)</h5>
-              <SummaryRow label="IVA Repercutido Total" value={fiscalData.ivaVentas} />
-              <SummaryRow label="IVA Soportado Total" value={fiscalData.ivaGastos} />
-              <SummaryRow label="Resultado Anual IVA" value={fiscalData.balanceIVA} highlight />
+              <SummaryRow label="IVA Repercutido Total" value={fiscalData?.ivaVentas} />
+              <SummaryRow label="IVA Soportado Total" value={fiscalData?.ivaGastos} />
+              <SummaryRow label="Resultado Anual IVA" value={fiscalData?.balanceIVA} highlight />
             </div>
           </div>
 
           <div className="mt-12 pt-12 border-t border-emerald-900/10 flex flex-col md:flex-row justify-between items-center gap-8">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-2 leading-none">Beneficio de Bolsillo Anual</p>
-              <p className="text-7xl font-black tracking-tighter leading-none text-emerald-900">{ (fiscalData.beneficioReal || 0).toLocaleString('es-ES') } €</p>
+              <p className="text-7xl font-black tracking-tighter leading-none text-emerald-900">{(fiscalData?.beneficioReal ?? 0).toLocaleString('es-ES')} €</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 font-black text-[10px] tracking-widest">
               <a 
