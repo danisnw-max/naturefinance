@@ -15,6 +15,7 @@ from datetime import datetime
 router = APIRouter(prefix="/api/exports", tags=["exports"])
 
 UPLOAD_DIR = "uploads/justificantes"
+TIENDA_DB_PATH = "C:/Users/Daniel/Documents/ATERPE/SOFTWARE TIENDA/backend/database.db"
 
 class FiscalPDF(FPDF):
     def header(self):
