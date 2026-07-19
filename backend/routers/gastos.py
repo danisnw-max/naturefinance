@@ -163,3 +163,62 @@ def upload_justificante(gasto_id: int, file: UploadFile = File(...), session: Se
     session.commit()
     session.refresh(gasto)
     return gasto
+
+@router.post("/generate-recurring")
+def generate_recurring(
+    year: int,
+    month: int,
+    session: Session = Depends(get_session)
+):
+    import calendar
+    
+    # Check if we already have expenses for this month to avoid duplicates
+    existing = session.exec(
+        select(Gasto).where(Gasto.fecha.like(f"{year}-{month:02d}-%"))
+    ).all()
+    
+    existing_keys = {(g.concepto, g.categoria) for g in existing}
+
+    # Find all recurring template expenses from the database history
+    recurring_templates = session.exec(
+        select(Gasto)
+        .where(Gasto.es_recurrente == True)
+        .order_by(Gasto.fecha.desc())
+    ).all()
+    
+    if not recurring_templates:
+        raise HTTPException(status_code=400, detail="No hay gastos recurrentes registrados como plantilla.")
+        
+    # Get unique templates based on concept and category
+    templates = {}
+    for g in recurring_templates:
+        key = (g.concepto, g.categoria)
+        if key not in templates:
+            templates[key] = g
+            
+    # Insert missing templates into the target month
+    added_count = 0
+    max_days = calendar.monthrange(year, month)[1]
+    
+    for key, template in templates.items():
+        if key not in existing_keys:
+            day = min(template.diaCobro, max_days)
+            new_date = f"{year}-{month:02d}-{day:02d}"
+            
+            new_gasto = Gasto(
+                fecha=new_date,
+                diaCobro=day,
+                categoria=template.categoria,
+                concepto=template.concepto,
+                importe=template.importe,
+                iva=template.iva,
+                deducibleIva=template.deducibleIva,
+                deducibleIrpf=template.deducibleIrpf,
+                es_recurrente=True,
+                justificante_filename=None # reset document since it's a new month
+            )
+            session.add(new_gasto)
+            added_count += 1
+            
+    session.commit()
+    return {"status": "ok", "generated_count": added_count}

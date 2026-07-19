@@ -30,7 +30,8 @@ export default function GastosTab({
   setFilterMonth,
   filterSinJustificante,
   setFilterSinJustificante,
-  summary
+  summary,
+  onGenerateRecurring
 }) {
 
   const MONTHS = [
@@ -177,6 +178,20 @@ export default function GastosTab({
               ))}
             </select>
           </div>
+
+          {filterMonth !== 'all' && (
+            <div className="flex flex-col">
+              <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Gastos Fijos</label>
+              <button
+                type="button"
+                onClick={() => onGenerateRecurring(filterYear, filterMonth)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer h-10"
+                title="Generar gastos fijos para este mes"
+              >
+                <RefreshCcw size={12} /> Autogenerar Fijos
+              </button>
+            </div>
+          )}
 
         </div>
 
@@ -424,6 +439,24 @@ export default function GastosTab({
             </div>
           </div>
 
+          {/* GASTO RECURRENTE CONTROL */}
+          <div className="col-span-1 md:col-span-12 p-6 bg-slate-800 border border-slate-700 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-2 z-10">
+            <div className="flex gap-4 items-center">
+              <RefreshCcw size={24} className="text-indigo-400 shrink-0" />
+              <div>
+                <p className="font-black uppercase tracking-widest text-[10px] text-indigo-300 mb-1">Periodicidad Contable</p>
+                <p className="text-sm font-bold text-white">¿Este gasto es un costo fijo mensual (recurrente)?</p>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              onClick={() => setNuevoGasto(prev => ({...prev, es_recurrente: !prev.es_recurrente}))} 
+              className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all cursor-pointer ${nuevoGasto.es_recurrente ? 'bg-indigo-500 text-white shadow-lg' : 'bg-white/10 text-slate-400'}`}
+            >
+              {nuevoGasto.es_recurrente ? 'SÍ, MARCAR COMO RECURRENTE' : 'NO, ES UN GASTO PUNTUAL'}
+            </button>
+          </div>
+
           <div className="col-span-1 md:col-span-12 flex justify-end gap-4 mt-4 z-10 font-black uppercase italic">
             <button 
               type="button" 
@@ -504,7 +537,14 @@ export default function GastosTab({
                                 <Receipt size={20} />
                               </div>
                               <div>
-                                <p className="font-black text-slate-900 uppercase italic leading-none">{g.concepto}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-black text-slate-900 uppercase italic leading-none">{g.concepto}</p>
+                                  {g.es_recurrente && (
+                                    <span className="bg-indigo-500/10 text-indigo-600 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border border-indigo-500/20" title="Gasto Fijo Mensual">
+                                      Fijo
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 block">
                                   {g.categoria}
                                 </span>

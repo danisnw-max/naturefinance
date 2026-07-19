@@ -20,7 +20,12 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
   - *IVA Soportado Deducible*: Muestra la cuota estimada deducible.
   - *Cobertura Justificantes*: Porcentaje y barra de progreso de facturas subidas en el periodo.
 - **Agrupación Mensual en Tabla**: Registros divididos cronológicamente con banners mensuales y subtotales acumulados (gasto bruto e IVA deducible del mes en la página).
-
+- **Gastos Recurrentes / Fijos Mensuales**:
+  - Añadido el campo `es_recurrente` en el modelo `Gasto` y migración automática de base de datos en el arranque del servidor.
+  - El formulario de alta de gasto ahora incluye la opción para marcar un gasto como recurrente mensual.
+  - La tabla del Libro de Gastos resalta visualmente los costos fijos mediante la etiqueta `"Fijo"`.
+  - Nuevo botón `"🔄 Autogenerar Fijos"` en la barra de periodos que copia y duplica automáticamente todos los gastos fijos del histórico hacia el mes seleccionado, descartando duplicados para evitar registros redundantes.
+  - Actualizado el semillado inicial para poblar automáticamente los gastos fijos de todos los meses de 2026.
 ## [1.1.0] - 2026-07-16
 
 ### Añadido

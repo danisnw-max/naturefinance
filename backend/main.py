@@ -56,18 +56,21 @@ def seed_database(session: Session):
 
     # Seed Expenses (Gastos)
     if session.exec(select(Gasto)).first() is None:
-        initial_expenses = [
-            Gasto(fecha="2026-04-01", diaCobro=1, categoria="Alquiler", concepto="Alquiler Local", importe=1300.0, iva=21, deducibleIva=100, deducibleIrpf=100),
-            Gasto(fecha="2026-04-02", diaCobro=28, categoria="S.S. Autónomo", concepto="Cuota Seguridad Social", importe=320.0, iva=0, deducibleIva=0, deducibleIrpf=100),
-            Gasto(fecha="2026-04-05", diaCobro=15, categoria="Suministros", concepto="Luz y Agua (Iberdrola)", importe=250.0, iva=21, deducibleIva=100, deducibleIrpf=100),
-            Gasto(fecha="2026-04-10", diaCobro=10, categoria="Gestoría", concepto="Mensualidad Contable", importe=120.0, iva=21, deducibleIva=100, deducibleIrpf=100),
-            Gasto(fecha="2026-04-18", diaCobro=20, categoria="Suministros", concepto="Teléfono Móvil (Vodafone)", importe=60.0, iva=21, deducibleIva=50, deducibleIrpf=50),
-            Gasto(fecha="2026-04-28", diaCobro=28, categoria="Nóminas y Personal", concepto="Nómina Dependienta", importe=650.0, iva=0, deducibleIva=0, deducibleIrpf=100)
-        ]
+        initial_expenses = []
+        # Seed for months 1 to 12 of 2026
+        for m in range(1, 13):
+            initial_expenses.extend([
+                Gasto(fecha=f"2026-{m:02d}-01", diaCobro=1, categoria="Alquiler", concepto="Alquiler Local", importe=1300.0, iva=21, deducibleIva=100, deducibleIrpf=100, es_recurrente=True),
+                Gasto(fecha=f"2026-{m:02d}-28", diaCobro=28, categoria="S.S. Autónomo", concepto="Cuota Seguridad Social", importe=320.0, iva=0, deducibleIva=0, deducibleIrpf=100, es_recurrente=True),
+                Gasto(fecha=f"2026-{m:02d}-15", diaCobro=15, categoria="Suministros", concepto="Luz y Agua (Iberdrola)", importe=250.0, iva=21, deducibleIva=100, deducibleIrpf=100, es_recurrente=True),
+                Gasto(fecha=f"2026-{m:02d}-10", diaCobro=10, categoria="Gestoría", concepto="Mensualidad Contable", importe=120.0, iva=21, deducibleIva=100, deducibleIrpf=100, es_recurrente=True),
+                Gasto(fecha=f"2026-{m:02d}-20", diaCobro=20, categoria="Suministros", concepto="Teléfono Móvil (Vodafone)", importe=60.0, iva=21, deducibleIva=50, deducibleIrpf=50, es_recurrente=True),
+                Gasto(fecha=f"2026-{m:02d}-28", diaCobro=28, categoria="Nóminas y Personal", concepto="Nómina Dependienta", importe=650.0, iva=0, deducibleIva=0, deducibleIrpf=100, es_recurrente=True)
+            ])
         for exp in initial_expenses:
             session.add(exp)
         session.commit()
-        print("Initial expenses successfully seeded!")
+        print("Initial expenses successfully seeded for all months of 2026!")
 
     # Seed Investments (Inversiones)
     if session.exec(select(Inversion)).first() is None:
@@ -82,8 +85,27 @@ def seed_database(session: Session):
         session.commit()
         print("Initial investments successfully seeded!")
 
+def migrate_database():
+    import sqlite3
+    db_path = "database.db"
+    if os.path.exists(db_path):
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            # Check if es_recurrente column exists
+            cursor.execute("PRAGMA table_info(gasto)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if "es_recurrente" not in columns:
+                cursor.execute("ALTER TABLE gasto ADD COLUMN es_recurrente BOOLEAN DEFAULT 0")
+                conn.commit()
+                print("Database migrated: Added es_recurrente column to gasto table.")
+            conn.close()
+        except Exception as e:
+            print("Migration warning:", e)
+
 @app.on_event("startup")
 def on_startup():
+    migrate_database()
     create_db_and_tables()
     with Session(engine) as session:
         seed_database(session)

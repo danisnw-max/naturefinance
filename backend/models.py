@@ -31,6 +31,7 @@ class Gasto(SQLModel, table=True):
     deducibleIva: int  # 0-100
     deducibleIrpf: int  # 0-100
     justificante_filename: Optional[str] = None  # PDF/image filename uploaded
+    es_recurrente: bool = Field(default=False)
 
 class Inversion(SQLModel, table=True):
     __tablename__ = "inversion"

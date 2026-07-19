@@ -97,6 +97,7 @@ export default function App() {
     deducibleIrpf: 100,
     esInversion: false, 
     esAbono: false, 
+    es_recurrente: false,
     vidaUtil: 4
   });
 
@@ -139,6 +140,17 @@ export default function App() {
       }
     } catch (err) {
       console.error("Error loading expenses:", err);
+    }
+  };
+
+  const handleGenerateRecurring = async (year, month) => {
+    try {
+      const res = await api.post(`/gastos/generate-recurring?year=${year}&month=${month}`);
+      alert(`Se han autogenerado ${res.generated_count} gastos fijos del historico.`);
+      await fetchGastos(page);
+    } catch (err) {
+      console.error("Error generating recurring expenses:", err);
+      alert("Error al generar gastos recurrentes.");
     }
   };
 
@@ -263,6 +275,7 @@ export default function App() {
       deducibleIrpf: 100, 
       esInversion: false, 
       esAbono: false,
+      es_recurrente: false,
       vidaUtil: 4 
     });
     setEditingId(null);
@@ -308,7 +321,8 @@ export default function App() {
       importe: importeNum, 
       iva: parseInt(nuevoGasto.iva), 
       deducibleIva: parseInt(nuevoGasto.deducibleIva) || 0, 
-      deducibleIrpf: parseInt(nuevoGasto.deducibleIrpf) || 0 
+      deducibleIrpf: parseInt(nuevoGasto.deducibleIrpf) || 0,
+      es_recurrente: nuevoGasto.es_recurrente
     };
 
     try {
@@ -338,6 +352,7 @@ export default function App() {
       deducibleIrpf: gasto.deducibleIrpf ?? 100, 
       esInversion: false, 
       esAbono: gasto.importe < 0,
+      es_recurrente: gasto.es_recurrente ?? false,
       vidaUtil: 4,
       importe: Math.abs(gasto.importe)
     });
@@ -547,6 +562,7 @@ export default function App() {
               filterSinJustificante={filterSinJustificante}
               setFilterSinJustificante={setFilterSinJustificante}
               summary={gastosSummary}
+              onGenerateRecurring={handleGenerateRecurring}
             />
           )}
 
