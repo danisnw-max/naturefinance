@@ -12,11 +12,15 @@ export default function FiscalTab({ configFiscal, onSaveConfig }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    const isFloat = name.includes('inventario') || 
+                    name.includes('ingresos') || 
+                    name.includes('retencion') || 
+                    name.includes('irpf') ||
+                    name.includes('Pct') ||
+                    name.includes('precio');
     setFormData(prev => ({
       ...prev,
-      [name]: name.includes('inventario') || name.includes('ingresos') || name.includes('retencion') || name.includes('irpf')
-        ? parseFloat(value) || 0
-        : value
+      [name]: isFloat ? parseFloat(value) || 0 : value
     }));
   };
 
@@ -245,6 +249,72 @@ export default function FiscalTab({ configFiscal, onSaveConfig }) {
                       className="w-full bg-black/20 border border-rose-500/30 rounded-2xl p-4 text-white font-black text-xl outline-none focus:border-rose-500 transition-colors" 
                     />
                     <span className="absolute right-5 top-1/2 -translate-y-1/2 text-rose-400 font-black text-xl">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Parámetros del Convenio de Nóminas */}
+            <div className="bg-slate-950/40 border border-white/5 rounded-[32px] p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <Percent className="text-indigo-400" size={24} />
+                <h4 className="text-lg font-black uppercase tracking-widest leading-none text-indigo-400 italic">Convenio y Nóminas (Bizkaia)</h4>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <label className="text-[10px] uppercase text-emerald-100/70 font-black mb-2 block">% Contingencias Comunes</label>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      name="contingenciasComunesPct"
+                      value={formData.contingenciasComunesPct || 4.70} 
+                      onChange={handleChange} 
+                      className="w-full bg-black/20 border border-slate-500/30 rounded-2xl p-4 text-white font-black text-xl outline-none focus:border-indigo-500 transition-colors" 
+                    />
+                    <span className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xl">%</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase text-emerald-100/70 font-black mb-2 block">% Desempleo</label>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      name="desempleoPct"
+                      value={formData.desempleoPct || 1.55} 
+                      onChange={handleChange} 
+                      className="w-full bg-black/20 border border-slate-500/30 rounded-2xl p-4 text-white font-black text-xl outline-none focus:border-indigo-500 transition-colors" 
+                    />
+                    <span className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xl">%</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase text-emerald-100/70 font-black mb-2 block">% Formación Profesional</label>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      name="formacionProfesionalPct"
+                      value={formData.formacionProfesionalPct || 0.10} 
+                      onChange={handleChange} 
+                      className="w-full bg-black/20 border border-slate-500/30 rounded-2xl p-4 text-white font-black text-xl outline-none focus:border-indigo-500 transition-colors" 
+                    />
+                    <span className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xl">%</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase text-emerald-100/70 font-black mb-2 block">Precio Hora Extra (€)</label>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      step="0.5"
+                      name="precioHoraExtra"
+                      value={formData.precioHoraExtra || 15.00} 
+                      onChange={handleChange} 
+                      className="w-full bg-black/20 border border-slate-500/30 rounded-2xl p-4 text-white font-black text-xl outline-none focus:border-indigo-500 transition-colors" 
+                    />
+                    <span className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-xl">€</span>
                   </div>
                 </div>
               </div>

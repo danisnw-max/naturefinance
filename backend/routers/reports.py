@@ -60,9 +60,9 @@ def get_fiscal_summary(
                     start_date, end_date = f"{year}-07-01", f"{year}-09-30T23:59:59"
                 else:
                     start_date, end_date = f"{year}-10-01", f"{year}-12-31T23:59:59"
-                cursor.execute("SELECT SUM(total) FROM venta WHERE date >= ? AND date <= ?", (start_date, end_date))
+                cursor.execute("SELECT SUM(total) FROM venta WHERE date >= ? AND date <= ? AND tipo_documento != 'Devolución'", (start_date, end_date))
             else:
-                cursor.execute("SELECT SUM(total) FROM venta WHERE date >= ? AND date <= ?", (f"{year}-01-01", f"{year}-12-31T23:59:59"))
+                cursor.execute("SELECT SUM(total) FROM venta WHERE date >= ? AND date <= ? AND tipo_documento != 'Devolución'", (f"{year}-01-01", f"{year}-12-31T23:59:59"))
             
             row = cursor.fetchone()
             conn.close()
