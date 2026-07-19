@@ -18,26 +18,68 @@ def list_gastos(
     limit: int = 50,
     categoria: Optional[str] = None,
     concepto: Optional[str] = None,
+    year: Optional[int] = None,
+    quarter: Optional[int] = None,
+    month: Optional[int] = None,
+    sin_justificante: Optional[bool] = None,
     session: Session = Depends(get_session)
 ):
     query = select(Gasto)
+    
+    # Apply filters
     if categoria:
         query = query.where(Gasto.categoria == categoria)
     if concepto:
         query = query.where(Gasto.concepto == concepto)
         
-    # Count total matching records using a count select query
-    total_query = select(func.count(Gasto.id))
-    if categoria:
-        total_query = total_query.where(Gasto.categoria == categoria)
-    if concepto:
-        total_query = total_query.where(Gasto.concepto == concepto)
-        
-    total = session.exec(total_query).one()
+    if year:
+        if month:
+            query = query.where(Gasto.fecha.like(f"{year}-{month:02d}-%"))
+        elif quarter:
+            if quarter == 1:
+                start_date, end_date = f"{year}-01-01", f"{year}-03-31"
+            elif quarter == 2:
+                start_date, end_date = f"{year}-04-01", f"{year}-06-30"
+            elif quarter == 3:
+                start_date, end_date = f"{year}-07-01", f"{year}-09-30"
+            else:
+                start_date, end_date = f"{year}-10-01", f"{year}-12-31"
+            query = query.where(Gasto.fecha >= start_date).where(Gasto.fecha <= end_date)
+        else:
+            start_date, end_date = f"{year}-01-01", f"{year}-12-31"
+            query = query.where(Gasto.fecha >= start_date).where(Gasto.fecha <= end_date)
+
+    if sin_justificante:
+        query = query.where((Gasto.justificante_filename == None) | (Gasto.justificante_filename == ""))
+
+    # First, calculate summary statistics for the ENTIRE filtered query (pre-pagination)
+    all_matching = session.exec(query).all()
+    total = len(all_matching)
     
-    # Apply limit and offset
+    total_importe = sum(g.importe for g in all_matching)
+    total_iva_deducible = 0.0
+    count_justificantes = 0
+    
+    for g in all_matching:
+        base = g.importe / (1 + (g.iva / 100))
+        cuota = g.importe - base
+        pctIva = (g.deducibleIva if g.deducibleIva is not None else 100) / 100
+        total_iva_deducible += cuota * pctIva
+        if g.justificante_filename:
+            count_justificantes += 1
+            
+    summary = {
+        "total_importe": round(total_importe, 2),
+        "total_iva_deducible": round(total_iva_deducible, 2),
+        "count_justificantes": count_justificantes,
+        "count_total": total
+    }
+
+    # Apply limit and offset for pagination on the query
     offset = (page - 1) * limit
-    items = session.exec(query.order_by(Gasto.fecha.desc()).offset(offset).limit(limit)).all()
+    # We re-run query with order and pagination
+    paginated_query = query.order_by(Gasto.fecha.desc()).offset(offset).limit(limit)
+    items = session.exec(paginated_query).all()
     
     pages = (total + limit - 1) // limit if limit > 0 else 1
     
@@ -46,7 +88,8 @@ def list_gastos(
         "total": total,
         "page": page,
         "limit": limit,
-        "pages": pages
+        "pages": pages,
+        "summary": summary
     }
 
 @router.post("", response_model=Gasto)

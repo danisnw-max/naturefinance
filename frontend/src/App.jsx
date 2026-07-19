@@ -100,13 +100,43 @@ export default function App() {
     vidaUtil: 4
   });
 
+  // Filters for Expenses Book
+  const [filterYear, setFilterYear] = useState(2026);
+  const [filterQuarter, setFilterQuarter] = useState('all');
+  const [filterMonth, setFilterMonth] = useState('all');
+  const [filterSinJustificante, setFilterSinJustificante] = useState(false);
+  const [gastosSummary, setGastosSummary] = useState({
+    total_importe: 0,
+    total_iva_deducible: 0,
+    count_justificantes: 0,
+    count_total: 0
+  });
+
   // Fetch paginated expenses
   const fetchGastos = async (currentPage) => {
     try {
-      const res = await api.get(`/gastos?page=${currentPage}&limit=${limit}`);
+      const queryParams = [
+        `page=${currentPage}`,
+        `limit=${limit}`,
+        `year=${filterYear}`
+      ];
+      if (filterQuarter !== 'all') {
+        queryParams.push(`quarter=${filterQuarter}`);
+      }
+      if (filterMonth !== 'all') {
+        queryParams.push(`month=${filterMonth}`);
+      }
+      if (filterSinJustificante) {
+        queryParams.push(`sin_justificante=true`);
+      }
+
+      const res = await api.get(`/gastos?${queryParams.join('&')}`);
       setGastos(res.items);
       setPages(res.pages);
       setTotalExpenses(res.total);
+      if (res.summary) {
+        setGastosSummary(res.summary);
+      }
     } catch (err) {
       console.error("Error loading expenses:", err);
     }
@@ -141,10 +171,15 @@ export default function App() {
     loadData();
   }, []);
 
-  // Reload expenses when page changes
+  // Reload expenses when filters or page changes
   useEffect(() => {
     fetchGastos(page);
-  }, [page]);
+  }, [page, filterYear, filterQuarter, filterMonth, filterSinJustificante]);
+
+  // When filters change, reset page to 1
+  useEffect(() => {
+    setPage(1);
+  }, [filterYear, filterQuarter, filterMonth, filterSinJustificante]);
 
   // Reactive effect to load server calculated fiscal reports when inputs change
   useEffect(() => {
@@ -503,6 +538,15 @@ export default function App() {
               setPage={setPage}
               proveedores={proveedores}
               onDirectDocUpload={handleDirectDocUpload}
+              filterYear={filterYear}
+              setFilterYear={setFilterYear}
+              filterQuarter={filterQuarter}
+              setFilterQuarter={setFilterQuarter}
+              filterMonth={filterMonth}
+              setFilterMonth={setFilterMonth}
+              filterSinJustificante={filterSinJustificante}
+              setFilterSinJustificante={setFilterSinJustificante}
+              summary={gastosSummary}
             />
           )}
 

@@ -10,6 +10,16 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ### Añadido
 - **Acceso directo a Justificantes**: En el Libro de Gastos, la celda "Justificante" ahora es un enlace interactivo ("Ver Doc") que permite visualizar o descargar directamente el PDF/imagen adjunto del gasto en una nueva pestaña del navegador.
 - **Re-subida de justificantes**: Se añadió un control (icono de subida) junto al enlace del documento para permitir re-subir o cambiar el justificante de un gasto existente de forma instantánea.
+- **Filtros Temporales en el Libro de Gastos**:
+  - Selector de Año (2026, 2025).
+  - Selector rápido de Trimestre (T1, T2, T3, T4, Todos).
+  - Selector de Mes adaptativo según el trimestre seleccionado.
+- **Filtro de Auditoría (⚠️ Sin Justificante)**: Switch interactivo para filtrar la tabla mostrando solo los gastos que no tienen factura física subida.
+- **Tarjetas Resumen KPI**:
+  - *Total Gastos*: Muestra la suma bruta de gastos del periodo seleccionado.
+  - *IVA Soportado Deducible*: Muestra la cuota estimada deducible.
+  - *Cobertura Justificantes*: Porcentaje y barra de progreso de facturas subidas en el periodo.
+- **Agrupación Mensual en Tabla**: Registros divididos cronológicamente con banners mensuales y subtotales acumulados (gasto bruto e IVA deducible del mes en la página).
 
 ## [1.1.0] - 2026-07-16
 

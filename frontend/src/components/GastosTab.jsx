@@ -21,8 +21,71 @@ export default function GastosTab({
   total,
   setPage,
   proveedores,
-  onDirectDocUpload
+  onDirectDocUpload,
+  filterYear,
+  setFilterYear,
+  filterQuarter,
+  setFilterQuarter,
+  filterMonth,
+  setFilterMonth,
+  filterSinJustificante,
+  setFilterSinJustificante,
+  summary
 }) {
+
+  const MONTHS = [
+    { value: 1, label: 'Enero' },
+    { value: 2, label: 'Febrero' },
+    { value: 3, label: 'Marzo' },
+    { value: 4, label: 'Abril' },
+    { value: 5, label: 'Mayo' },
+    { value: 6, label: 'Junio' },
+    { value: 7, label: 'Julio' },
+    { value: 8, label: 'Agosto' },
+    { value: 9, label: 'Septiembre' },
+    { value: 10, label: 'Octubre' },
+    { value: 11, label: 'Noviembre' },
+    { value: 12, label: 'Diciembre' }
+  ];
+
+  // Filter months to show based on selected quarter
+  const filteredMonths = React.useMemo(() => {
+    if (filterQuarter === 'all') return MONTHS;
+    const q = parseInt(filterQuarter);
+    return MONTHS.slice((q - 1) * 3, q * 3);
+  }, [filterQuarter]);
+
+  // Group visible items by month
+  const groupedGastos = React.useMemo(() => {
+    const groups = {};
+    gastos.forEach(g => {
+      const dateParts = g.fecha.split('-');
+      const year = dateParts[0];
+      const monthNum = parseInt(dateParts[1]);
+      const monthObj = MONTHS.find(m => m.value === monthNum);
+      const groupKey = `${year}-${monthNum}`;
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          key: groupKey,
+          label: `${monthObj ? monthObj.label : 'Mes'} ${year}`,
+          items: [],
+          totalImporte: 0,
+          totalIva: 0
+        };
+      }
+      
+      groups[groupKey].items.push(g);
+      groups[groupKey].totalImporte += g.importe;
+      
+      const base = g.importe / (1 + (g.iva / 100));
+      const cuota = g.importe - base;
+      const pctIva = (g.deducibleIva ?? 100) / 100;
+      groups[groupKey].totalIva += cuota * pctIva;
+    });
+
+    return Object.values(groups).sort((a, b) => b.key.localeCompare(a.key));
+  }, [gastos]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -52,6 +115,141 @@ export default function GastosTab({
           {showForm ? <X size={20} className="text-rose-400" /> : <Plus size={20} className="text-emerald-400" />}
           <span className="font-bold text-sm uppercase tracking-widest">{showForm ? 'Cancelar' : 'Añadir Gasto'}</span>
         </button>
+      </div>
+
+      {/* Period Selection Bar & Sin Justificante Switch */}
+      <div className="bg-white p-6 rounded-[32px] shadow-xl border border-slate-100/50 flex flex-col lg:flex-row gap-6 justify-between items-stretch lg:items-center">
+        
+        {/* Date Filters */}
+        <div className="flex flex-wrap items-center gap-6">
+          
+          {/* Year Select */}
+          <div className="flex flex-col">
+            <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Año</label>
+            <select
+              value={filterYear}
+              onChange={(e) => {
+                setFilterYear(parseInt(e.target.value));
+                setFilterMonth('all');
+              }}
+              className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500/20 appearance-none cursor-pointer"
+            >
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+            </select>
+          </div>
+
+          {/* Quarter buttons */}
+          <div className="flex flex-col">
+            <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Trimestre</label>
+            <div className="flex bg-slate-50 border border-slate-200 rounded-xl p-1 gap-1">
+              {['all', '1', '2', '3', '4'].map(q => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => {
+                    setFilterQuarter(q);
+                    setFilterMonth('all');
+                  }}
+                  className={`px-3.5 py-2 text-xs font-bold rounded-lg uppercase tracking-wider transition-all cursor-pointer ${
+                    filterQuarter === q
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {q === 'all' ? 'Todos' : `T${q}`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Month Select */}
+          <div className="flex flex-col">
+            <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Mes</label>
+            <select
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+              className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500/20 appearance-none cursor-pointer"
+            >
+              <option value="all">Todos los meses</option>
+              {filteredMonths.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+        </div>
+
+        {/* Sin Justificante Switch */}
+        <div className="flex items-center justify-between lg:justify-end gap-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-100">
+          <div className="text-right">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-700">Filtro de Auditoría</p>
+            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Buscar facturas pendientes</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFilterSinJustificante(!filterSinJustificante)}
+            className={`flex items-center gap-2 px-5 py-3 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${
+              filterSinJustificante 
+                ? 'bg-rose-50 border-rose-200 text-rose-600 shadow-md shadow-rose-50' 
+                : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+            }`}
+          >
+            ⚠️ Sin Justificante
+          </button>
+        </div>
+
+      </div>
+
+      {/* KPI Cards Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Total Expenses */}
+        <div className="bg-slate-900 text-white p-8 rounded-[40px] shadow-2xl relative overflow-hidden flex flex-col justify-between h-40">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Gastos ({filterQuarter !== 'all' ? `T${filterQuarter}` : 'Periodo'})</p>
+          <div className="mt-4">
+            <h4 className="text-3xl font-black tracking-tight text-rose-400 leading-none">
+              -{summary.total_importe.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+            </h4>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-2 block">Importe bruto total acumulado</span>
+          </div>
+        </div>
+
+        {/* VAT Deducible */}
+        <div className="bg-slate-900 text-white p-8 rounded-[40px] shadow-2xl relative overflow-hidden flex flex-col justify-between h-40">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">IVA Soportado Deducible</p>
+          <div className="mt-4">
+            <h4 className="text-3xl font-black tracking-tight text-emerald-400 leading-none">
+              +{summary.total_iva_deducible.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+            </h4>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-2 block">Deducción estimada del periodo</span>
+          </div>
+        </div>
+
+        {/* Justification Coverage */}
+        <div className="bg-slate-900 text-white p-8 rounded-[40px] shadow-2xl relative overflow-hidden flex flex-col justify-between h-40">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl" />
+          <div className="flex justify-between items-start">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cobertura Justificantes</p>
+            <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-500/20">
+              {summary.count_total > 0 ? Math.round((summary.count_justificantes / summary.count_total) * 100) : 100}%
+            </span>
+          </div>
+          <div className="mt-4">
+            <h4 className="text-3xl font-black tracking-tight text-indigo-300 leading-none">
+              {summary.count_justificantes} / {summary.count_total}
+            </h4>
+            <div className="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+              <div 
+                className="bg-indigo-400 h-full rounded-full transition-all duration-500" 
+                style={{ width: `${summary.count_total > 0 ? (summary.count_justificantes / summary.count_total) * 100 : 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* FORM */}
@@ -270,104 +468,135 @@ export default function GastosTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {gastos.map(g => {
-                const isAbono = g.importe < 0;
-                return (
-                  <tr key={g.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="py-8 px-10">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-2xl ${isAbono ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-600'}`}>
-                          <Receipt size={20} />
-                        </div>
-                        <div>
-                          <p className="font-black text-slate-900 uppercase italic leading-none">{g.concepto}</p>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 block">
-                            {g.categoria}
+              {groupedGastos.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="py-10 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
+                    No se encontraron gastos en este periodo.
+                  </td>
+                </tr>
+              ) : (
+                groupedGastos.map(group => (
+                  <React.Fragment key={group.key}>
+                    
+                    {/* Month subheader banner */}
+                    <tr className="bg-slate-50/80 text-slate-700 font-black text-xs uppercase tracking-widest border-y border-slate-100">
+                      <td colSpan="6" className="py-4 px-10">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                          <span className="flex items-center gap-2 text-slate-900 italic font-black">
+                            📅 {group.label}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-bold tracking-wider leading-none normal-case">
+                            Gastado este mes: <strong className="text-rose-500 font-black">-{Math.abs(group.totalImporte).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</strong> 
+                            {group.totalIva > 0 && <span className="ml-3 text-slate-400"> | IVA Deducible: <strong className="text-emerald-600 font-black">+{group.totalIva.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</strong></span>}
                           </span>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-8 px-10 text-center">
-                      <p className="text-sm font-bold text-slate-700 leading-none">{g.fecha}</p>
-                      <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1 block">
-                        Día cobro: {g.diaCobro}
-                      </span>
-                    </td>
-                    <td className="py-8 px-10 text-center">
-                      {g.justificante_filename ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <a 
-                            href={`http://localhost:8001/uploads/justificantes/${g.justificante_filename}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-emerald-500 hover:text-emerald-700 font-black text-[10px] uppercase bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1 rounded-xl border border-emerald-500/20 hover:border-emerald-500/45 transition-all cursor-pointer flex items-center gap-1 shadow-sm hover:scale-105 active:scale-95"
-                            title="Ver documento adjunto"
-                          >
-                            Ver Doc
-                          </a>
-                          <label className="cursor-pointer text-slate-400 hover:text-indigo-600 transition-colors" title="Cambiar documento">
-                            <Upload size={14} />
-                            <input 
-                              type="file" 
-                              accept="application/pdf,image/*"
-                              className="hidden" 
-                              onChange={(e) => onDirectDocUpload(g.id, e.target.files[0])} 
-                            />
-                          </label>
-                        </div>
-                      ) : (
-                        <label className="cursor-pointer text-indigo-500 hover:text-indigo-700 font-black text-[10px] uppercase bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-200 transition-all flex items-center justify-center gap-1 w-fit mx-auto">
-                          <Upload size={12} /> Subir PDF
-                          <input 
-                            type="file" 
-                            accept="application/pdf,image/*"
-                            className="hidden" 
-                            onChange={(e) => onDirectDocUpload(g.id, e.target.files[0])} 
-                          />
-                        </label>
-                      )}
-                    </td>
-                    <td className="py-8 px-10 text-center">
-                      <div className="flex flex-col items-center gap-1.5">
-                        <span className="bg-slate-100 px-3 py-1 rounded-xl text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">
-                          IVA {g.iva}%
-                        </span>
-                        <div className="flex gap-2">
-                          <span className={`text-[8px] font-black uppercase tracking-widest border border-current px-1.5 py-0.5 rounded ${g.deducibleIva === 100 ? 'text-emerald-500' : g.deducibleIva > 0 ? 'text-amber-500' : 'text-slate-400'}`}>
-                            IVA: {g.deducibleIva}%
-                          </span>
-                          <span className={`text-[8px] font-black uppercase tracking-widest border border-current px-1.5 py-0.5 rounded ${g.deducibleIrpf === 100 ? 'text-indigo-500' : g.deducibleIrpf > 0 ? 'text-amber-500' : 'text-slate-400'}`}>
-                            IRPF: {g.deducibleIrpf}%
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-8 px-10 text-right">
-                      <span className={`text-2xl font-black tracking-tighter leading-none ${isAbono ? 'text-emerald-600' : 'text-rose-500'}`}>
-                        {isAbono ? '+' : '-'}{Math.abs(g.importe).toLocaleString('es-ES')} €
-                      </span>
-                    </td>
-                    <td className="py-8 px-10 text-center">
-                      <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => onEditGasto(g)} 
-                          className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
-                          title="Editar"
-                        >
-                          <Edit3 size={16} />
-                        </button>
-                        <button 
-                          onClick={() => onDeleteGasto(g.id)} 
-                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                    </tr>
+
+                    {/* Month items */}
+                    {group.items.map(g => {
+                      const isAbono = g.importe < 0;
+                      return (
+                        <tr key={g.id} className="hover:bg-slate-50/50 transition-colors group">
+                          <td className="py-8 px-10">
+                            <div className="flex items-center gap-4">
+                              <div className={`p-3 rounded-2xl ${isAbono ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-600'}`}>
+                                <Receipt size={20} />
+                              </div>
+                              <div>
+                                <p className="font-black text-slate-900 uppercase italic leading-none">{g.concepto}</p>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 block">
+                                  {g.categoria}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-8 px-10 text-center">
+                            <p className="text-sm font-bold text-slate-700 leading-none">{g.fecha}</p>
+                            <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1 block">
+                              Día cobro: {g.diaCobro}
+                            </span>
+                          </td>
+                          <td className="py-8 px-10 text-center">
+                            {g.justificante_filename ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <a 
+                                  href={`http://localhost:8001/uploads/justificantes/${g.justificante_filename}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-emerald-500 hover:text-emerald-700 font-black text-[10px] uppercase bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1 rounded-xl border border-emerald-500/20 hover:border-emerald-500/45 transition-all cursor-pointer flex items-center gap-1 shadow-sm hover:scale-105 active:scale-95"
+                                  title="Ver documento adjunto"
+                                
+                                >
+                                  Ver Doc
+                                </a>
+                                <label className="cursor-pointer text-slate-400 hover:text-indigo-600 transition-colors" title="Cambiar documento">
+                                  <Upload size={14} />
+                                  <input 
+                                    type="file" 
+                                    accept="application/pdf,image/*"
+                                    className="hidden" 
+                                    onChange={(e) => onDirectDocUpload(g.id, e.target.files[0])} 
+                                  />
+                                </label>
+                              </div>
+                            ) : (
+                              <label className="cursor-pointer text-indigo-500 hover:text-indigo-700 font-black text-[10px] uppercase bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-200 transition-all flex items-center justify-center gap-1 w-fit mx-auto">
+                                <Upload size={12} /> Subir PDF
+                                <input 
+                                  type="file" 
+                                  accept="application/pdf,image/*"
+                                  className="hidden" 
+                                  onChange={(e) => onDirectDocUpload(g.id, e.target.files[0])} 
+                                />
+                              </label>
+                            )}
+                          </td>
+                          <td className="py-8 px-10 text-center">
+                            <div className="flex flex-col items-center gap-1.5">
+                              <span className="bg-slate-100 px-3 py-1 rounded-xl text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">
+                                IVA {g.iva}%
+                              </span>
+                              <div className="flex gap-2">
+                                <span className={`text-[8px] font-black uppercase tracking-widest border border-current px-1.5 py-0.5 rounded ${g.deducibleIva === 100 ? 'text-emerald-500' : g.deducibleIva > 0 ? 'text-amber-500' : 'text-slate-400'}`}>
+                                  IVA: {g.deducibleIva}%
+                                </span>
+                                <span className={`text-[8px] font-black uppercase tracking-widest border border-current px-1.5 py-0.5 rounded ${g.deducibleIrpf === 100 ? 'text-indigo-500' : g.deducibleIrpf > 0 ? 'text-amber-500' : 'text-slate-400'}`}>
+                                  IRPF: {g.deducibleIrpf}%
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-8 px-10 text-right">
+                            <span className={`text-2xl font-black tracking-tighter leading-none ${isAbono ? 'text-emerald-600' : 'text-rose-500'}`}>
+                              {isAbono ? '+' : '-'}{Math.abs(g.importe).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                            </span>
+                          </td>
+                          <td className="py-8 px-10 text-center">
+                            <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button 
+                                onClick={() => onEditGasto(g)} 
+                                className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                                title="Editar"
+                              >
+                                <Edit3 size={16} />
+                              </button>
+                              <button 
+                                onClick={() => onDeleteGasto(g.id)} 
+                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+                                title="Eliminar"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                  </React.Fragment>
+                ))
+              )}
             </tbody>
           </table>
         </div>
