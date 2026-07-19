@@ -146,11 +146,11 @@ export default function App() {
   const handleGenerateRecurring = async (year, month) => {
     try {
       const res = await api.post(`/gastos/generate-recurring?year=${year}&month=${month}`);
-      alert(`Se han autogenerado ${res.generated_count} gastos fijos del historico.`);
+      alert(`Se han autogenerado ${res.generated_count} gastos fijos del histórico.`);
       await fetchGastos(page);
     } catch (err) {
       console.error("Error generating recurring expenses:", err);
-      alert("Error al generar gastos recurrentes.");
+      alert(`Error al generar gastos recurrentes: ${err.message || "Error de conexión"}`);
     }
   };
 
