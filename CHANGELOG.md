@@ -5,6 +5,12 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-07-19
+
+### Añadido
+- **Acceso directo a Justificantes**: En el Libro de Gastos, la celda "Justificante" ahora es un enlace interactivo ("Ver Doc") que permite visualizar o descargar directamente el PDF/imagen adjunto del gasto en una nueva pestaña del navegador.
+- **Re-subida de justificantes**: Se añadió un control (icono de subida) junto al enlace del documento para permitir re-subir o cambiar el justificante de un gasto existente de forma instantánea.
+
 ## [1.1.0] - 2026-07-16
 
 ### Añadido

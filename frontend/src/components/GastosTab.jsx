@@ -295,9 +295,26 @@ export default function GastosTab({
                     </td>
                     <td className="py-8 px-10 text-center">
                       {g.justificante_filename ? (
-                        <span className="text-emerald-500 font-black text-[10px] uppercase bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">
-                          Subido
-                        </span>
+                        <div className="flex items-center justify-center gap-2">
+                          <a 
+                            href={`http://localhost:8001/uploads/justificantes/${g.justificante_filename}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-500 hover:text-emerald-700 font-black text-[10px] uppercase bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1 rounded-xl border border-emerald-500/20 hover:border-emerald-500/45 transition-all cursor-pointer flex items-center gap-1 shadow-sm hover:scale-105 active:scale-95"
+                            title="Ver documento adjunto"
+                          >
+                            Ver Doc
+                          </a>
+                          <label className="cursor-pointer text-slate-400 hover:text-indigo-600 transition-colors" title="Cambiar documento">
+                            <Upload size={14} />
+                            <input 
+                              type="file" 
+                              accept="application/pdf,image/*"
+                              className="hidden" 
+                              onChange={(e) => onDirectDocUpload(g.id, e.target.files[0])} 
+                            />
+                          </label>
+                        </div>
                       ) : (
                         <label className="cursor-pointer text-indigo-500 hover:text-indigo-700 font-black text-[10px] uppercase bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-200 transition-all flex items-center justify-center gap-1 w-fit mx-auto">
                           <Upload size={12} /> Subir PDF
