@@ -23,6 +23,7 @@ export default function App() {
   const [gastos, setGastos] = useState([]);
   const [inversiones, setInversiones] = useState([]);
   const [proveedores, setProveedores] = useState([]);
+  const [empleados, setEmpleados] = useState([]);
   const [configFiscal, setConfigFiscal] = useState({
     comercio: '',
     titular: '',
@@ -176,6 +177,13 @@ export default function App() {
 
       const provs = await api.get('/proveedores/tienda');
       setProveedores(provs);
+
+      try {
+        const emps = await api.get('/empleados');
+        setEmpleados(emps);
+      } catch (e) {
+        console.warn("Could not fetch employees:", e);
+      }
       
       await fetchGastos(page);
     } catch (err) {
@@ -569,6 +577,7 @@ export default function App() {
               setFilterSinJustificante={setFilterSinJustificante}
               summary={gastosSummary}
               onGenerateRecurring={handleGenerateRecurring}
+              empleados={empleados}
             />
           )}
 

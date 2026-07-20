@@ -222,3 +222,90 @@ def generate_recurring(
             
     session.commit()
     return {"status": "ok", "generated_count": added_count}
+
+from pydantic import BaseModel
+
+class SendEmailPayload(BaseModel):
+    email: str
+    nombre_empleado: Optional[str] = None
+
+TIENDA_DB_PATH = "C:/Users/Daniel/Documents/ATERPE/SOFTWARE TIENDA/backend/database.db"
+
+@router.post("/{gasto_id}/send-email")
+def send_payroll_email(
+    gasto_id: int,
+    payload: SendEmailPayload,
+    session: Session = Depends(get_session)
+):
+    import sqlite3
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from email.mime.application import MIMEApplication
+
+    gasto = session.get(Gasto, gasto_id)
+    if not gasto:
+        raise HTTPException(status_code=404, detail="Gasto no encontrado")
+        
+    if not gasto.justificante_filename:
+        raise HTTPException(status_code=400, detail="Este registro de nómina no tiene adjunto ningún documento justificante en PDF.")
+
+    file_path = os.path.join(UPLOAD_DIR, gasto.justificante_filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="El archivo adjunto no existe en el servidor.")
+
+    # Fetch SMTP configuration from TIENDA database if available
+    smtp_server = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", 587))
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_password = os.environ.get("SMTP_PASSWORD", "")
+    email_remitente = os.environ.get("EMAIL_REMITENTE", "")
+
+    if os.path.exists(TIENDA_DB_PATH):
+        try:
+            conn = sqlite3.connect(TIENDA_DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("SELECT smtp_server, smtp_port, smtp_user, smtp_password, email_remitente FROM smtpconfig LIMIT 1")
+            row = cursor.fetchone()
+            conn.close()
+            if row:
+                smtp_server = row[0] or smtp_server
+                smtp_port = row[1] or smtp_port
+                smtp_user = row[2] or smtp_user
+                smtp_password = row[3] or smtp_password
+                email_remitente = row[4] or email_remitente
+        except Exception as e:
+            print("Notice: Could not load SMTP config from store DB:", e)
+
+    if not smtp_user or not smtp_password:
+        raise HTTPException(status_code=400, detail="Configuración SMTP no encontrada. Configure las credenciales de correo en la tienda o en variables de entorno.")
+
+    remitente = email_remitente or smtp_user
+    nombre_emp = payload.nombre_empleado or "Empleado"
+
+    msg = MIMEMultipart()
+    msg['From'] = remitente
+    msg['To'] = payload.email
+    msg['Subject'] = f"Nómina de {gasto.concepto} - {gasto.fecha}"
+
+    body = f"Hola {nombre_emp},\n\nAdjunto encontrarás el justificante de la nómina correspondiente al periodo {gasto.fecha}.\n\nUn saludo,\nAterpe Herboristería / Contabilidad"
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        with open(file_path, "rb") as f:
+            part = MIMEApplication(f.read(), Name=os.path.basename(file_path))
+            part['Content-Disposition'] = f'attachment; filename="{gasto.justificante_filename}"'
+            msg.attach(part)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error leyendo el archivo adjunto: {str(e)}")
+
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.sendmail(remitente, payload.email, msg.as_string())
+        server.quit()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al enviar el correo SMTP: {str(e)}")
+
+    return {"status": "ok", "message": f"Nómina enviada correctamente a {payload.email}"}

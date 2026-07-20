@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   X, Plus, Receipt, RefreshCcw, Zap, 
-  Edit3, Trash2, Upload
+  Edit3, Trash2, Upload, Mail, Send
 } from 'lucide-react';
+import { api } from '../services/api';
 
 export default function GastosTab({ 
   gastos, 
@@ -33,8 +34,13 @@ export default function GastosTab({
   filterSinJustificante,
   setFilterSinJustificante,
   summary,
-  onGenerateRecurring
+  onGenerateRecurring,
+  empleados = []
 }) {
+  const [emailModalGasto, setEmailModalGasto] = useState(null);
+  const [selectedEmpId, setSelectedEmpId] = useState('');
+  const [customEmail, setCustomEmail] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const MONTHS = [
     { value: 1, label: 'Enero' },
@@ -583,10 +589,34 @@ export default function GastosTab({
                                   rel="noopener noreferrer"
                                   className="text-emerald-500 hover:text-emerald-700 font-black text-[10px] uppercase bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1 rounded-xl border border-emerald-500/20 hover:border-emerald-500/45 transition-all cursor-pointer flex items-center gap-1 shadow-sm hover:scale-105 active:scale-95"
                                   title="Ver documento adjunto"
-                                
                                 >
                                   Ver Doc
                                 </a>
+
+                                {/* Email button for payroll / any expense with attachment */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEmailModalGasto(g);
+                                    // Preselect employee if matching concept name
+                                    const match = empleados.find(e => g.concepto.toLowerCase().includes(e.nombre.toLowerCase()));
+                                    if (match) {
+                                      setSelectedEmpId(match.id);
+                                      setCustomEmail(match.email);
+                                    } else if (empleados.length > 0) {
+                                      setSelectedEmpId(empleados[0].id);
+                                      setCustomEmail(empleados[0].email);
+                                    } else {
+                                      setSelectedEmpId('');
+                                      setCustomEmail('');
+                                    }
+                                  }}
+                                  className="text-indigo-500 hover:text-indigo-700 font-black text-[10px] uppercase bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1 rounded-xl border border-indigo-500/20 hover:border-indigo-500/45 transition-all cursor-pointer flex items-center gap-1 shadow-sm hover:scale-105 active:scale-95"
+                                  title="Enviar nómina por email"
+                                >
+                                  <Mail size={12} /> Email
+                                </button>
+
                                 <label className="cursor-pointer text-slate-400 hover:text-indigo-600 transition-colors" title="Cambiar documento">
                                   <Upload size={14} />
                                   <input 
@@ -680,6 +710,110 @@ export default function GastosTab({
         </div>
 
       </div>
+
+      {/* EMAIL MODAL */}
+      {emailModalGasto && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 text-white rounded-[32px] p-8 max-w-md w-full shadow-2xl space-y-6">
+            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-indigo-500/20 text-indigo-400 p-2.5 rounded-xl border border-indigo-500/30">
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <h4 className="text-lg font-black uppercase tracking-wider">Enviar Nómina por Email</h4>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{emailModalGasto.concepto} ({emailModalGasto.fecha})</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setEmailModalGasto(null)}
+                className="text-slate-400 hover:text-white p-2 rounded-lg cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!emailModalGasto || !customEmail) return;
+                setSendingEmail(true);
+
+                const empObj = empleados.find(emp => emp.id === selectedEmpId);
+                const empNombre = empObj ? empObj.nombre : (emailModalGasto.concepto || "Empleado");
+
+                try {
+                  const res = await api.post(`/gastos/${emailModalGasto.id}/send-email`, {
+                    email: customEmail,
+                    nombre_empleado: empNombre
+                  });
+                  alert(res.message || "¡Nómina enviada con éxito!");
+                  setEmailModalGasto(null);
+                } catch (err) {
+                  console.error("Error sending payroll email:", err);
+                  alert(`Error al enviar correo: ${err.message || "Verifique credenciales SMTP"}`);
+                } finally {
+                  setSendingEmail(false);
+                }
+              }} 
+              className="space-y-4 font-black uppercase"
+            >
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 block mb-2 tracking-widest">Seleccionar Empleado (Tienda)</label>
+                <select
+                  value={selectedEmpId}
+                  onChange={(e) => {
+                    setSelectedEmpId(e.target.value);
+                    const emp = empleados.find(empItem => empItem.id === e.target.value);
+                    if (emp) setCustomEmail(emp.email);
+                  }}
+                  className="w-full bg-slate-800 border border-white/10 rounded-xl p-3 text-xs font-bold text-white outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                >
+                  {empleados.map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.nombre} ({emp.email || 'Sin Email'})</option>
+                  ))}
+                  <option value="custom">Otro / Correo Personalizado</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 block mb-2 tracking-widest">Correo Electrónico Destinatario</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="ejemplo@correo.com"
+                  value={customEmail}
+                  onChange={(e) => setCustomEmail(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs font-bold text-white outline-none focus:border-indigo-500 normal-case font-normal"
+                />
+              </div>
+
+              <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-[10px] text-slate-400 space-y-1">
+                <p className="font-black text-indigo-300 uppercase">Adjunto a enviar:</p>
+                <p className="truncate text-slate-300 normal-case">📄 {emailModalGasto.justificante_filename}</p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEmailModalGasto(null)}
+                  className="px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-black uppercase tracking-wider cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingEmail}
+                  className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
+                >
+                  <Send size={14} />
+                  {sendingEmail ? 'Enviando...' : 'Enviar Correo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

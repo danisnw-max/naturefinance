@@ -13,6 +13,7 @@ from routers.inversiones import router as inversiones_router
 from routers.ventas import router as ventas_router
 from routers.reports import router as reports_router
 from routers.proveedores import router as proveedores_router
+from routers.empleados import router as empleados_router
 from routers.exports import router as exports_router
 
 app = FastAPI(title="NaturaFinance API", version="1.0.0")
@@ -125,4 +126,5 @@ app.include_router(inversiones_router)
 app.include_router(ventas_router)
 app.include_router(reports_router)
 app.include_router(proveedores_router)
+app.include_router(empleados_router)
 app.include_router(exports_router)

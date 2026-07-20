@@ -5,6 +5,16 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-07-20
+
+### Añadido
+- **Envío de Nóminas por Email**:
+  - Nuevo enrutador `backend/routers/empleados.py` para consultar la lista de empleados directamente desde la base de datos de la tienda.
+  - Nuevo endpoint `POST /api/gastos/{gasto_id}/send-email` que lee la configuración SMTP de la tienda y envía por correo electrónico la nómina en PDF al empleado seleccionado.
+  - En la interfaz del Libro de Gastos (`GastosTab.jsx`), añadido botón con icono de correo junto a cada justificante de nómina subido, abriendo un modal dinámico para seleccionar el empleado o personalizar el email.
+
+---
+
 ## [1.2.2] - 2026-07-20
 
 ### Añadido
