@@ -105,6 +105,7 @@ export default function App() {
   const [filterYear, setFilterYear] = useState(2026);
   const [filterQuarter, setFilterQuarter] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
+  const [filterCategoria, setFilterCategoria] = useState('all');
   const [filterSinJustificante, setFilterSinJustificante] = useState(false);
   const [gastosSummary, setGastosSummary] = useState({
     total_importe: 0,
@@ -126,6 +127,9 @@ export default function App() {
       }
       if (filterMonth !== 'all') {
         queryParams.push(`month=${filterMonth}`);
+      }
+      if (filterCategoria !== 'all') {
+        queryParams.push(`categoria=${encodeURIComponent(filterCategoria)}`);
       }
       if (filterSinJustificante) {
         queryParams.push(`sin_justificante=true`);
@@ -186,12 +190,12 @@ export default function App() {
   // Reload expenses when filters or page changes
   useEffect(() => {
     fetchGastos(page);
-  }, [page, filterYear, filterQuarter, filterMonth, filterSinJustificante]);
+  }, [page, filterYear, filterQuarter, filterMonth, filterCategoria, filterSinJustificante]);
 
   // When filters change, reset page to 1
   useEffect(() => {
     setPage(1);
-  }, [filterYear, filterQuarter, filterMonth, filterSinJustificante]);
+  }, [filterYear, filterQuarter, filterMonth, filterCategoria, filterSinJustificante]);
 
   // Reactive effect to load server calculated fiscal reports when inputs change
   useEffect(() => {
@@ -559,6 +563,8 @@ export default function App() {
               setFilterQuarter={setFilterQuarter}
               filterMonth={filterMonth}
               setFilterMonth={setFilterMonth}
+              filterCategoria={filterCategoria}
+              setFilterCategoria={setFilterCategoria}
               filterSinJustificante={filterSinJustificante}
               setFilterSinJustificante={setFilterSinJustificante}
               summary={gastosSummary}

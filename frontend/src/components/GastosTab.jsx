@@ -28,6 +28,8 @@ export default function GastosTab({
   setFilterQuarter,
   filterMonth,
   setFilterMonth,
+  filterCategoria,
+  setFilterCategoria,
   filterSinJustificante,
   setFilterSinJustificante,
   summary,
@@ -175,6 +177,21 @@ export default function GastosTab({
               <option value="all">Todos los meses</option>
               {filteredMonths.map(m => (
                 <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Category Select */}
+          <div className="flex flex-col">
+            <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Categoría</label>
+            <select
+              value={filterCategoria}
+              onChange={(e) => setFilterCategoria(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500/20 appearance-none cursor-pointer"
+            >
+              <option value="all">Todas las categorías</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
           </div>

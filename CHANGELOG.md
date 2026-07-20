@@ -5,6 +5,39 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-07-20
+
+### Añadido
+- **Filtro por Categoría en el Libro de Gastos**:
+  - Añadido selector de categoría (`Alquiler`, `Nóminas y Personal`, `S.S. Autónomo`, etc.) en la barra de filtros de `GastosTab.jsx`.
+  - Integrado con la API backend en `App.jsx` para recalcular totales y re-paginar los gastos filtrados dinámicamente.
+
+---
+
+## [1.2.1] - 2026-07-20
+
+### Corregido
+- **Cálculo de Ventas Netas con Devoluciones**:
+  - Corregida la consulta en `backend/routers/reports.py` y `backend/routers/ventas.py` para incluir todos los tickets de devolución (importes negativos) directamente en la suma de ingresos de NaturaERP.
+  - El total de ventas devuelto por la API y mostrado en el *Portal de Cierre* ahora refleja las ventas netas exactas (Ventas brutas menos Devoluciones).
+  - Eliminada la duplicación de devoluciones como registros de gasto para evitar una doble reducción del resultado contable.
+
+---
+
+## [1.2.0] - 2026-07-19
+
+### Añadido
+- **Integración de Devoluciones desde NaturaERP**:
+  - Cuando se procesa una devolución desde la tienda, se registra automáticamente un gasto de tipo `"Devolución de Ventas"` en el Libro de Gastos de Nature Finance.
+  - Los registros de devolución quedan excluidos del cálculo de `ingresosTotales` en los reportes fiscales (modelos 130, 303) para evitar doble imputación negativa.
+  - Actualizado el endpoint `/api/ventas/sync-tienda` para filtrar documentos de tipo `"Devolución"` en la lectura de ingresos.
+  - Actualizado `reports.py` para excluir devoluciones del cálculo de la base imponible y del IVA repercutido.
+
+### Cambiado
+- **Modelo de Ventas**: Soporte para el campo `tipo_documento` que distingue entre `"Venta"` y `"Devolución"` al sincronizar con NaturaERP.
+
+---
+
 ## [1.1.1] - 2026-07-19
 
 ### Añadido
