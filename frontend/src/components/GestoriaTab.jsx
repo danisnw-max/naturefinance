@@ -363,6 +363,51 @@ export default function GestoriaTab({
               </a>
             </div>
           </div>
+
+          {/* Bloque de Checklist y Verificación Anual para Enero */}
+          <div className="mt-8 bg-slate-950/60 border border-emerald-500/20 rounded-[32px] p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <ShieldCheck className="text-emerald-400" size={24} />
+              <div>
+                <h5 className="text-white text-sm font-black uppercase tracking-wider leading-none">Auditoría de Documentación para Cierre Anual</h5>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 block">Comprobación de registros requeridos para la campaña anual (Hacienda Bizkaia)</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-black/30 border border-white/5 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <p className="text-white text-xs font-black uppercase">Modelo 390 (Resumen IVA)</p>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Consolidado 4 Trimestres del Mod 303</span>
+                </div>
+                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">✓ Listo</span>
+              </div>
+
+              <div className="bg-black/30 border border-white/5 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <p className="text-white text-xs font-black uppercase">Modelo 190 (Resumen Retenciones Personal)</p>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Perceptores Clave A (Plantilla) y Clave G (Autónomos)</span>
+                </div>
+                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">✓ Listo</span>
+              </div>
+
+              <div className="bg-black/30 border border-white/5 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <p className="text-white text-xs font-black uppercase">Modelo 180 (Resumen Retenciones Alquiler)</p>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Consolidado 4 Trimestres del Mod 115</span>
+                </div>
+                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">✓ Listo</span>
+              </div>
+
+              <div className="bg-black/30 border border-white/5 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <p className="text-white text-xs font-black uppercase">Variación de Stock / Existencias</p>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Inicial: {fiscalData?.inventarioInicial || 0}€ • Final: {fiscalData?.inventarioFinal || 0}€</span>
+                </div>
+                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">✓ Configurado</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
