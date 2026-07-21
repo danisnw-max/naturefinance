@@ -80,9 +80,15 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
                 <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mt-1">Cierre en Curso: {fiscalCalendar.quarter}</p>
               </div>
             </div>
-            <div className="bg-white/10 px-6 py-3 rounded-2xl border border-white/20">
-              <span className="text-[10px] uppercase tracking-widest text-slate-400 block mb-1">Fecha Límite Hacienda Foral</span>
-              <span className="font-black text-white">{fiscalCalendar.nextDeadline}</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="bg-white/10 px-6 py-3 rounded-2xl border border-white/20">
+                <span className="text-[10px] uppercase tracking-widest text-slate-400 block mb-1">Límite Trimestral</span>
+                <span className="font-black text-white">{fiscalCalendar.nextDeadline}</span>
+              </div>
+              <div className="bg-amber-500/10 px-6 py-3 rounded-2xl border border-amber-500/30">
+                <span className="text-[10px] uppercase tracking-widest text-amber-400/80 block mb-1">Límite Cierre Anual</span>
+                <span className="font-black text-amber-300">31 de Enero</span>
+              </div>
             </div>
           </div>
 
@@ -93,16 +99,12 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             {/* MODELO 303 */}
             <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${modelStatus.mod303 ? 'bg-emerald-900/20 border-emerald-500/50' : 'bg-black/20 border-white/10 hover:border-amber-500/30'}`}>
-              <div className="flex justify-between items-start mb-4">
+              <div className="flex justify-between items-start mb-6">
                 <div>
                   <h4 className={`font-black text-xl ${modelStatus.mod303 ? 'text-emerald-400' : 'text-amber-400'}`}>Modelo 303</h4>
                   <span className="text-[10px] uppercase tracking-widest text-slate-400">Liquidación de IVA</span>
                 </div>
                 {renderStatusIcon('mod303', true)}
-              </div>
-              <div className="mb-4 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 inline-block">
-                <span className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Fecha Límite Bizkaia: </span>
-                <span className="text-[10px] font-black text-emerald-400">25 de Ene / Abr / Jul / Oct</span>
               </div>
               <p className="text-3xl font-black mb-2">{Math.max(0, fiscalData.balanceIVA).toLocaleString('es-ES')} €</p>
               <p className="text-xs text-slate-400 italic normal-case font-medium">
@@ -112,16 +114,12 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
 
             {/* MODELO 130 */}
             <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${modelStatus.mod130 ? 'bg-emerald-900/20 border-emerald-500/50' : 'bg-black/20 border-white/10 hover:border-amber-500/30'}`}>
-              <div className="flex justify-between items-start mb-4">
+              <div className="flex justify-between items-start mb-6">
                 <div>
                   <h4 className={`font-black text-xl ${modelStatus.mod130 ? 'text-emerald-400' : 'text-amber-400'}`}>Modelo 130</h4>
                   <span className="text-[10px] uppercase tracking-widest text-slate-400">Pago Fraccionado IRPF</span>
                 </div>
                 {renderStatusIcon('mod130', true)}
-              </div>
-              <div className="mb-4 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 inline-block">
-                <span className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Fecha Límite Bizkaia: </span>
-                <span className="text-[10px] font-black text-emerald-400">25 de Ene / Abr / Jul / Oct</span>
               </div>
               <p className="text-3xl font-black mb-2">{fiscalData.provisionIRPF.toLocaleString('es-ES')} €</p>
               <p className="text-xs text-slate-400 italic normal-case font-medium">
@@ -131,16 +129,12 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
 
             {/* MODELO 111 */}
             <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${modelStatus.mod111 ? 'bg-emerald-900/20 border-emerald-500/50' : fiscalData.retencionesNominas > 0 ? 'bg-indigo-900/30 border-indigo-500/50' : 'bg-black/20 border-white/10 opacity-50'}`}>
-              <div className="flex justify-between items-start mb-4">
+              <div className="flex justify-between items-start mb-6">
                 <div>
                   <h4 className={`font-black text-xl ${modelStatus.mod111 ? 'text-emerald-400' : fiscalData.retencionesNominas > 0 ? 'text-indigo-400' : 'text-slate-400'}`}>Modelo 111</h4>
                   <span className="text-[10px] uppercase tracking-widest text-slate-400">Retenciones Trabajadores y Profesionales</span>
                 </div>
                 {renderStatusIcon('mod111', fiscalData.retencionesNominas > 0)}
-              </div>
-              <div className="mb-4 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 inline-block">
-                <span className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Fecha Límite Bizkaia: </span>
-                <span className="text-[10px] font-black text-indigo-300">25 de Ene / Abr / Jul / Oct</span>
               </div>
               <p className="text-3xl font-black mb-2">{fiscalData.retencionesNominas.toLocaleString('es-ES')} €</p>
               <p className="text-xs text-slate-400 italic normal-case font-medium">
@@ -150,16 +144,12 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
 
             {/* MODELO 115 */}
             <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${modelStatus.mod115 ? 'bg-emerald-900/20 border-emerald-500/50' : fiscalData.retencionesAlquiler > 0 ? 'bg-rose-900/30 border-rose-500/50' : 'bg-black/20 border-white/10 opacity-50'}`}>
-              <div className="flex justify-between items-start mb-4">
+              <div className="flex justify-between items-start mb-6">
                 <div>
                   <h4 className={`font-black text-xl ${modelStatus.mod115 ? 'text-emerald-400' : fiscalData.retencionesAlquiler > 0 ? 'text-rose-400' : 'text-slate-400'}`}>Modelo 115</h4>
                   <span className="text-[10px] uppercase tracking-widest text-slate-400">Retenciones Alquiler Local</span>
                 </div>
                 {renderStatusIcon('mod115', fiscalData.retencionesAlquiler > 0)}
-              </div>
-              <div className="mb-4 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 inline-block">
-                <span className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">Fecha Límite Bizkaia: </span>
-                <span className="text-[10px] font-black text-rose-300">25 de Ene / Abr / Jul / Oct</span>
               </div>
               <p className="text-3xl font-black mb-2">{fiscalData.retencionesAlquiler.toLocaleString('es-ES')} €</p>
               <p className="text-xs text-slate-400 italic normal-case font-medium">
@@ -170,11 +160,8 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
 
           {/* Resumen Informativos Anuales */}
           <div className="bg-white/5 p-8 rounded-[32px] border border-white/10 uppercase font-black italic">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
-              <div>
-                <h4 className="font-black uppercase tracking-widest text-xs text-slate-400">Modelos Informativos Anuales</h4>
-                <p className="text-[10px] text-amber-400 font-bold normal-case italic mt-0.5">📅 Fecha límite oficial Hacienda Bizkaia: 31 de Enero</p>
-              </div>
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="font-black uppercase tracking-widest text-xs text-slate-400">Modelos Informativos Anuales</h4>
               <span className="text-[10px] text-slate-500 font-bold normal-case italic">Haz clic en cada modelo para marcar como presentado</span>
             </div>
             <div className="flex flex-wrap gap-4">
@@ -188,7 +175,7 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
                 }`}
               >
                 {modelStatus.mod390 ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Clock size={14} className="text-slate-400" />}
-                390 (Resumen IVA) - {modelStatus.mod390 ? 'Presentado' : 'Hasta 31 Enero'}
+                390 (Resumen IVA) - {modelStatus.mod390 ? 'Presentado' : 'Pendiente'}
               </button>
 
               {/* Modelo 190 */}
@@ -203,7 +190,7 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
                 }`}
               >
                 {modelStatus.mod190 ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Clock size={14} className="text-indigo-400" />}
-                190 (Resumen Nóminas) - {modelStatus.mod190 ? 'Presentado' : 'Hasta 31 Enero'}
+                190 (Resumen Nóminas) - {modelStatus.mod190 ? 'Presentado' : 'Pendiente'}
               </button>
 
               {/* Modelo 180 */}
@@ -218,7 +205,7 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
                 }`}
               >
                 {modelStatus.mod180 ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Clock size={14} className="text-rose-400" />}
-                180 (Resumen Alquileres) - {modelStatus.mod180 ? 'Presentado' : 'Hasta 31 Enero'}
+                180 (Resumen Alquileres) - {modelStatus.mod180 ? 'Presentado' : 'Pendiente'}
               </button>
             </div>
           </div>
