@@ -219,7 +219,8 @@ export default function GestoriaTab({
                     </div>
                   </div>
                 );
-              })}
+              })
+              )}
             </div>
           </div>
 
