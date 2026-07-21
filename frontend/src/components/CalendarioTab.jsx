@@ -1,7 +1,64 @@
-import React from 'react';
-import { CalendarDays, CheckCircle2, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CalendarDays, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 
 export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
+  // Estado para gestionar si los modelos están completados manualmente
+  const [modelStatus, setModelStatus] = useState({
+    mod303: false,
+    mod130: false,
+    mod111: false,
+    mod115: false,
+  });
+
+  // Cargar estado desde localStorage al montar o al cambiar de trimestre
+  useEffect(() => {
+    const savedStatus = localStorage.getItem(`fiscal_status_${fiscalCalendar.quarter}`);
+    if (savedStatus) {
+      setModelStatus(JSON.parse(savedStatus));
+    } else {
+      // Estado inicial por defecto
+      setModelStatus({
+        mod303: false,
+        mod130: false,
+        mod111: false,
+        mod115: false,
+      });
+    }
+  }, [fiscalCalendar.quarter]);
+
+  // Función para alternar el estado y guardarlo
+  const toggleStatus = (model) => {
+    const newStatus = { ...modelStatus, [model]: !modelStatus[model] };
+    setModelStatus(newStatus);
+    localStorage.setItem(`fiscal_status_${fiscalCalendar.quarter}`, JSON.stringify(newStatus));
+  };
+
+  // Helper para renderizar el icono interactivo
+  const renderStatusIcon = (model, isRequired) => {
+    const isCompleted = modelStatus[model];
+    
+    if (isCompleted) {
+      return (
+        <button onClick={() => toggleStatus(model)} className="cursor-pointer transition-transform hover:scale-110" title="Marcar como pendiente">
+          <CheckCircle2 className="text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" size={28} />
+        </button>
+      );
+    }
+    
+    if (isRequired) {
+      return (
+        <button onClick={() => toggleStatus(model)} className="cursor-pointer transition-transform hover:scale-110" title="Marcar como presentado">
+          <AlertTriangle className="text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] animate-pulse" size={28} />
+        </button>
+      );
+    }
+
+    return (
+      <div title="No requerido este trimestre">
+        <CheckCircle2 className="text-slate-600" size={28} />
+      </div>
+    );
+  };
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
       <div className="bg-slate-900 p-12 rounded-[40px] shadow-2xl text-white relative overflow-hidden">
@@ -29,58 +86,62 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             {/* MODELO 303 */}
-            <div className="bg-black/20 border border-white/10 p-8 rounded-[32px] hover:border-emerald-500/50 transition-all uppercase font-black italic">
+            <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${modelStatus.mod303 ? 'bg-emerald-900/20 border-emerald-500/50' : 'bg-black/20 border-white/10 hover:border-amber-500/30'}`}>
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h4 className="font-black text-xl text-emerald-400">Modelo 303</h4>
+                  <h4 className={`font-black text-xl ${modelStatus.mod303 ? 'text-emerald-400' : 'text-amber-400'}`}>Modelo 303</h4>
                   <span className="text-[10px] uppercase tracking-widest text-slate-400">Liquidación de IVA</span>
                 </div>
-                <CheckCircle2 className="text-emerald-500" size={24} />
+                {renderStatusIcon('mod303', true)}
               </div>
               <p className="text-3xl font-black mb-2">{Math.max(0, fiscalData.balanceIVA).toLocaleString('es-ES')} €</p>
-              <p className="text-xs text-slate-400 italic normal-case font-medium">Generado a partir de ventas y compras.</p>
+              <p className="text-xs text-slate-400 italic normal-case font-medium">
+                {modelStatus.mod303 ? 'Presentado correctamente.' : 'Pendiente de presentación (generado a partir de ventas y compras).'}
+              </p>
             </div>
 
             {/* MODELO 130 */}
-            <div className="bg-black/20 border border-white/10 p-8 rounded-[32px] hover:border-emerald-500/50 transition-all uppercase font-black italic">
+            <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${modelStatus.mod130 ? 'bg-emerald-900/20 border-emerald-500/50' : 'bg-black/20 border-white/10 hover:border-amber-500/30'}`}>
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h4 className="font-black text-xl text-emerald-400">Modelo 130</h4>
+                  <h4 className={`font-black text-xl ${modelStatus.mod130 ? 'text-emerald-400' : 'text-amber-400'}`}>Modelo 130</h4>
                   <span className="text-[10px] uppercase tracking-widest text-slate-400">Pago Fraccionado IRPF</span>
                 </div>
-                <CheckCircle2 className="text-emerald-500" size={24} />
+                {renderStatusIcon('mod130', true)}
               </div>
               <p className="text-3xl font-black mb-2">{fiscalData.provisionIRPF.toLocaleString('es-ES')} €</p>
-              <p className="text-xs text-slate-400 italic normal-case font-medium">20% sobre tu rendimiento neto trimestral.</p>
+              <p className="text-xs text-slate-400 italic normal-case font-medium">
+                {modelStatus.mod130 ? 'Presentado correctamente.' : 'Pendiente (20% sobre tu rendimiento neto trimestral).'}
+              </p>
             </div>
 
             {/* MODELO 111 */}
-            <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${fiscalData.retencionesNominas > 0 ? 'bg-indigo-900/30 border-indigo-500/50' : 'bg-black/20 border-white/10 opacity-50'}`}>
+            <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${modelStatus.mod111 ? 'bg-emerald-900/20 border-emerald-500/50' : fiscalData.retencionesNominas > 0 ? 'bg-indigo-900/30 border-indigo-500/50' : 'bg-black/20 border-white/10 opacity-50'}`}>
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h4 className={`font-black text-xl ${fiscalData.retencionesNominas > 0 ? 'text-indigo-400' : 'text-slate-400'}`}>Modelo 111</h4>
+                  <h4 className={`font-black text-xl ${modelStatus.mod111 ? 'text-emerald-400' : fiscalData.retencionesNominas > 0 ? 'text-indigo-400' : 'text-slate-400'}`}>Modelo 111</h4>
                   <span className="text-[10px] uppercase tracking-widest text-slate-400">Retenciones Trabajadores y Profesionales</span>
                 </div>
-                {fiscalData.retencionesNominas > 0 ? <AlertTriangle className="text-amber-400" size={24} /> : <CheckCircle2 className="text-slate-600" size={24} />}
+                {renderStatusIcon('mod111', fiscalData.retencionesNominas > 0)}
               </div>
               <p className="text-3xl font-black mb-2">{fiscalData.retencionesNominas.toLocaleString('es-ES')} €</p>
               <p className="text-xs text-slate-400 italic normal-case font-medium">
-                {fiscalData.retencionesNominas > 0 ? 'Obligatorio por tener nóminas o facturas con retención.' : 'No tienes nóminas registradas este trimestre.'}
+                {modelStatus.mod111 ? 'Presentado correctamente.' : fiscalData.retencionesNominas > 0 ? 'Obligatorio por tener nóminas o facturas con retención.' : 'No tienes nóminas registradas este trimestre.'}
               </p>
             </div>
 
             {/* MODELO 115 */}
-            <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${fiscalData.retencionesAlquiler > 0 ? 'bg-rose-900/30 border-rose-500/50' : 'bg-black/20 border-white/10 opacity-50'}`}>
+            <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${modelStatus.mod115 ? 'bg-emerald-900/20 border-emerald-500/50' : fiscalData.retencionesAlquiler > 0 ? 'bg-rose-900/30 border-rose-500/50' : 'bg-black/20 border-white/10 opacity-50'}`}>
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h4 className={`font-black text-xl ${fiscalData.retencionesAlquiler > 0 ? 'text-rose-400' : 'text-slate-400'}`}>Modelo 115</h4>
+                  <h4 className={`font-black text-xl ${modelStatus.mod115 ? 'text-emerald-400' : fiscalData.retencionesAlquiler > 0 ? 'text-rose-400' : 'text-slate-400'}`}>Modelo 115</h4>
                   <span className="text-[10px] uppercase tracking-widest text-slate-400">Retenciones Alquiler Local</span>
                 </div>
-                {fiscalData.retencionesAlquiler > 0 ? <AlertTriangle className="text-amber-400" size={24} /> : <CheckCircle2 className="text-slate-600" size={24} />}
+                {renderStatusIcon('mod115', fiscalData.retencionesAlquiler > 0)}
               </div>
               <p className="text-3xl font-black mb-2">{fiscalData.retencionesAlquiler.toLocaleString('es-ES')} €</p>
               <p className="text-xs text-slate-400 italic normal-case font-medium">
-                {fiscalData.retencionesAlquiler > 0 ? 'Obligatorio por tener alquiler comercial activo.' : 'No hay gastos de alquiler registrados.'}
+                {modelStatus.mod115 ? 'Presentado correctamente.' : fiscalData.retencionesAlquiler > 0 ? 'Obligatorio por tener alquiler comercial activo.' : 'No hay gastos de alquiler registrados.'}
               </p>
             </div>
           </div>

@@ -312,9 +312,9 @@ def download_lroe_xml(
     else:
         gastos = [g for g in gastos if f"{year}-01-01" <= g.fecha <= f"{year}-12-31"]
 
-    # Build XML conforming to BATUZ LROE schema
-    root = ET.Element("lroe:LroePeticion", {
-        "xmlns:lroe": "https://www.batuz.eus/fitxategiak/batuz/LROE/esquemas/LROE_Peticion.xsd"
+    # Build XML conforming to BATUZ LROE Modelo 140 schema
+    root = ET.Element("lroe:LroePeticion140", {
+        "xmlns:lroe": "https://www.batuz.eus/fitxategiak/batuz/LROE/esquemas/LROE_140_Peticion.xsd"
     })
     
     cabecera = ET.SubElement(root, "Cabecera")
@@ -328,46 +328,103 @@ def download_lroe_xml(
     ejercicio.text = str(year)
     
     declarado = ET.SubElement(root, "Declarado")
+
+    # --- CAPÍTULO 1: INGRESOS Y FACTURAS EMITIDAS (VENTAS NATURAERP) ---
+    ingresos_el = ET.SubElement(declarado, "Ingresos")
+    if os.path.exists(TIENDA_DB_PATH):
+        try:
+            conn = sqlite3.connect(TIENDA_DB_PATH)
+            cursor = conn.cursor()
+            if quarter is not None:
+                if quarter == 1:
+                    start_date, end_date = f"{year}-01-01", f"{year}-03-31T23:59:59"
+                elif quarter == 2:
+                    start_date, end_date = f"{year}-04-01", f"{year}-06-30T23:59:59"
+                elif quarter == 3:
+                    start_date, end_date = f"{year}-07-01", f"{year}-09-30T23:59:59"
+                else:
+                    start_date, end_date = f"{year}-10-01", f"{year}-12-31T23:59:59"
+                cursor.execute("SELECT id, date, subtotal, total_iva, total, cliente_nombre FROM venta WHERE date >= ? AND date <= ?", (start_date, end_date))
+            else:
+                cursor.execute("SELECT id, date, subtotal, total_iva, total, cliente_nombre FROM venta WHERE date >= ? AND date <= ?", (f"{year}-01-01", f"{year}-12-31T23:59:59"))
+            
+            ventas_rows = cursor.fetchall()
+            conn.close()
+
+            for v in ventas_rows:
+                v_id, v_date, v_subtotal, v_iva, v_total, v_cliente = v
+                ingreso_item = ET.SubElement(ingresos_el, "Ingreso")
+                epig = ET.SubElement(ingreso_item, "Epigrafe")
+                epig.text = (config.epigrafe or "652.4").split(" - ")[0]
+                
+                fra_emitida = ET.SubElement(ingreso_item, "FacturaEmitida")
+                num_fra = ET.SubElement(fra_emitida, "NumFactura")
+                num_fra.text = str(v_id)
+                fecha_exp = ET.SubElement(fra_emitida, "FechaExpedicion")
+                fecha_exp.text = str(v_date)[:10]
+
+                desglose = ET.SubElement(fra_emitida, "DesgloseFactura")
+                detalle = ET.SubElement(desglose, "DetalleDesglose")
+                bi = ET.SubElement(detalle, "BaseImponible")
+                bi.text = f"{v_subtotal:.2f}"
+                tipo_iva = ET.SubElement(detalle, "TipoIVA")
+                tipo_iva.text = "10"
+                cuota_iva = ET.SubElement(detalle, "CuotaIVARepercutida")
+                cuota_iva.text = f"{v_iva:.2f}"
+        except Exception as e:
+            print(f"Error querying sales for XML: {e}")
+
+    # --- CAPÍTULO 2: GASTOS Y FACTURAS RECIBIDAS ---
     gastos_con_factura = ET.SubElement(declarado, "GastosConFacturaRecibida")
+    gastos_sin_factura = ET.SubElement(declarado, "GastosSinFactura")
 
     for g in gastos:
-        # Avoid including negative credits as normal invoices (they have separate XML tags in Batuz, but we'll structure this for normal ones)
         if g.importe <= 0:
             continue
+
+        # Si es nómina o personal sin factura mercantil directa -> Capítulo 2.2 (Gastos Sin Factura)
+        if g.categoria == "Nóminas y Personal" or g.categoria == "S.S. Autónomo":
+            gasto_sf = ET.SubElement(gastos_sin_factura, "GastoSinFactura")
+            epig = ET.SubElement(gasto_sf, "Epigrafe")
+            epig.text = (config.epigrafe or "652.4").split(" - ")[0]
             
-        gasto_el = ET.SubElement(gastos_con_factura, "GastoConFacturaRecibida")
-        
-        # Epigrafe IAE
-        epig = ET.SubElement(gasto_el, "Epigrafe")
-        epig.text = (config.epigrafe or "652.4").split(" - ")[0]
-        
-        # Invoice details
-        fra = ET.SubElement(gasto_el, "FacturaRecibida")
-        fecha_exp = ET.SubElement(fra, "FechaExpedicion")
-        fecha_exp.text = g.fecha
-        
-        concepto = ET.SubElement(fra, "ConceptoContable")
-        concepto.text = "Gasto corriente deducible" if g.categoria != "Alquiler" else "Arrendamiento de local"
+            concepto = ET.SubElement(gasto_sf, "ConceptoGastos")
+            concepto.text = "Gastos de personal / Seguridad Social"
+            fecha_g = ET.SubElement(gasto_sf, "FechaGasto")
+            fecha_g.text = g.fecha
+            importe_g = ET.SubElement(gasto_sf, "ImporteGasto")
+            importe_g.text = f"{g.importe:.2f}"
+        else:
+            # Capítulo 2.1 (Gastos Con Factura Recibida)
+            gasto_el = ET.SubElement(gastos_con_factura, "GastoConFacturaRecibida")
+            epig = ET.SubElement(gasto_el, "Epigrafe")
+            epig.text = (config.epigrafe or "652.4").split(" - ")[0]
+            
+            fra = ET.SubElement(gasto_el, "FacturaRecibida")
+            fecha_exp = ET.SubElement(fra, "FechaExpedicion")
+            fecha_exp.text = g.fecha
+            
+            concepto = ET.SubElement(fra, "ConceptoContable")
+            concepto.text = "Gasto corriente deducible" if g.categoria != "Alquiler" else "Arrendamiento de local"
 
-        # Totals
-        base = g.importe / (1 + (g.iva / 100))
-        cuota = g.importe - base
-        
-        desglose = ET.SubElement(fra, "DesgloseFactura")
-        detalle = ET.SubElement(desglose, "DetalleDesglose")
-        
-        bi = ET.SubElement(detalle, "BaseImponible")
-        bi.text = f"{base:.2f}"
-        
-        tipo = ET.SubElement(detalle, "TipoIVA")
-        tipo.text = str(g.iva)
-        
-        cuota_el = ET.SubElement(detalle, "CuotaIVASoportada")
-        cuota_el.text = f"{cuota:.2f}"
+            base = g.importe / (1 + (g.iva / 100))
+            cuota = g.importe - base
+            
+            desglose = ET.SubElement(fra, "DesgloseFactura")
+            detalle = ET.SubElement(desglose, "DetalleDesglose")
+            
+            bi = ET.SubElement(detalle, "BaseImponible")
+            bi.text = f"{base:.2f}"
+            
+            tipo = ET.SubElement(detalle, "TipoIVA")
+            tipo.text = str(g.iva)
+            
+            cuota_el = ET.SubElement(detalle, "CuotaIVASoportada")
+            cuota_el.text = f"{cuota:.2f}"
 
-        pct_iva = (g.deducibleIva if g.deducibleIva is not None else 100) / 100
-        cuota_deduc = ET.SubElement(detalle, "CuotaIVADeducible")
-        cuota_deduc.text = f"{(cuota * pct_iva):.2f}"
+            pct_iva = (g.deducibleIva if g.deducibleIva is not None else 100) / 100
+            cuota_deduc = ET.SubElement(detalle, "CuotaIVADeducible")
+            cuota_deduc.text = f"{(cuota * pct_iva):.2f}"
 
     xml_str = ET.tostring(root, encoding="utf-8")
     
@@ -377,3 +434,329 @@ def download_lroe_xml(
         media_type="application/xml",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+@router.get("/modelo-111-pdf")
+def download_modelo_111_pdf(
+    quarter: Optional[int] = None,
+    year: int = 2026,
+    session: Session = Depends(get_session)
+):
+    config = session.exec(select(ConfiguracionFiscal).where(ConfiguracionFiscal.id == 1)).first()
+    summary = get_fiscal_summary(quarter=quarter, year=year, session=session)
+
+    pct = summary.get('pctRetencionNominas', 2)
+    base = summary.get('baseNominas', 0.0)
+    cuota = summary.get('retencionesNominas', 0.0)
+    num_perceptores = summary.get('numPerceptoresNominas', 0)
+    periodo = f"{quarter}o Trimestre {year}" if quarter else f"Anual {year}"
+
+    pdf = FiscalPDF()
+    pdf.alias_nb_pages()
+    pdf.add_page()
+    pdf.set_text_color(51, 65, 85)
+
+    # Aviso borrador
+    pdf.set_fill_color(254, 243, 199)
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.cell(0, 8, "BORRADOR DE REFERENCIA - Presentacion oficial en bizkaia.eus (sede electronica)", ln=True, align="C", fill=True)
+    pdf.ln(6)
+
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, "1. DATOS DEL DECLARANTE / RETENEDOR", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 6, f"Razon Social / Nombre: {config.titular if config else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"NIF del Retenedor: {config.nif if config else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"Domicilio Fiscal: {config.direccion if config else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"Periodo de Liquidacion: {periodo}", ln=True)
+    pdf.ln(8)
+
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, "2. RENDIMIENTOS DEL TRABAJO Y ACTIVIDADES (MODELO 111)", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.ln(4)
+
+    # Cabecera tabla
+    pdf.set_fill_color(241, 245, 249)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(80, 8, "Concepto", border=1, fill=True)
+    pdf.cell(40, 8, "Importe", border=1, fill=True, align="R")
+    pdf.ln()
+
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(80, 8, f"Num. perceptores (registros nomina)", border=1)
+    pdf.cell(40, 8, f"{num_perceptores}", border=1, align="R")
+    pdf.ln()
+    pdf.cell(80, 8, "Base de retenciones (salarios netos)", border=1)
+    pdf.cell(40, 8, f"{base:.2f} EUR", border=1, align="R")
+    pdf.ln()
+    pdf.cell(80, 8, f"% Retencion IRPF aplicado", border=1)
+    pdf.cell(40, 8, f"{pct}%", border=1, align="R")
+    pdf.ln()
+    pdf.cell(80, 8, "Cuota de retencion calculada", border=1)
+    pdf.cell(40, 8, f"{cuota:.2f} EUR", border=1, align="R")
+    pdf.ln(12)
+
+    # Resultado
+    pdf.set_fill_color(241, 245, 249)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(80, 12, "TOTAL A INGRESAR:", fill=True)
+    pdf.cell(40, 12, f"{cuota:.2f} EUR", fill=True, align="R")
+    pdf.ln(12)
+
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(128, 128, 128)
+    pdf.multi_cell(0, 5, f"Base calculada = suma de las bases imponibles de todos los gastos de categoria 'Nominas y Personal' del periodo. Cuota = Base x {pct}% (% configurado en Ajustes del sistema).")
+
+    pdf_buffer = io.BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
+    filename = f"borrador_modelo_111_{year}_T{quarter if quarter else 'Anual'}.pdf"
+    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+@router.get("/modelo-115-pdf")
+def download_modelo_115_pdf(
+    quarter: Optional[int] = None,
+    year: int = 2026,
+    session: Session = Depends(get_session)
+):
+    config = session.exec(select(ConfiguracionFiscal).where(ConfiguracionFiscal.id == 1)).first()
+    summary = get_fiscal_summary(quarter=quarter, year=year, session=session)
+
+    pct = summary.get('pctRetencionAlquiler', 19)
+    base = summary.get('baseAlquiler', 0.0)
+    cuota = summary.get('retencionesAlquiler', 0.0)
+    periodo = f"{quarter}o Trimestre {year}" if quarter else f"Anual {year}"
+
+    pdf = FiscalPDF()
+    pdf.alias_nb_pages()
+    pdf.add_page()
+    pdf.set_text_color(51, 65, 85)
+
+    # Aviso borrador
+    pdf.set_fill_color(254, 243, 199)
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.cell(0, 8, "BORRADOR DE REFERENCIA - Presentacion oficial en bizkaia.eus (sede electronica)", ln=True, align="C", fill=True)
+    pdf.ln(6)
+
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, "1. DATOS DEL DECLARANTE / RETENEDOR", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 6, f"Razon Social / Nombre: {config.titular if config else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"NIF del Retenedor: {config.nif if config else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"Domicilio Fiscal: {config.direccion if config else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"Periodo de Liquidacion: {periodo}", ln=True)
+    pdf.ln(8)
+
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, "2. RENDIMIENTOS DE CAPITAL INMOBILIARIO (ARRENDAMIENTO LOCAL)", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.ln(4)
+
+    # Tabla desglose
+    pdf.set_fill_color(241, 245, 249)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(80, 8, "Concepto", border=1, fill=True)
+    pdf.cell(40, 8, "Importe", border=1, fill=True, align="R")
+    pdf.ln()
+
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(80, 8, "Base retenciones (cuotas alquiler sin IVA)", border=1)
+    pdf.cell(40, 8, f"{base:.2f} EUR", border=1, align="R")
+    pdf.ln()
+    pdf.cell(80, 8, "% Retencion IRPF sobre alquiler", border=1)
+    pdf.cell(40, 8, f"{pct}%", border=1, align="R")
+    pdf.ln()
+    pdf.cell(80, 8, "Cuota de retencion calculada", border=1)
+    pdf.cell(40, 8, f"{cuota:.2f} EUR", border=1, align="R")
+    pdf.ln(12)
+
+    # Resultado
+    pdf.set_fill_color(241, 245, 249)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(80, 12, "TOTAL A INGRESAR:", fill=True)
+    pdf.cell(40, 12, f"{cuota:.2f} EUR", fill=True, align="R")
+    pdf.ln(12)
+
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(128, 128, 128)
+    pdf.multi_cell(0, 5, f"Base calculada = suma de las bases imponibles de todos los gastos de categoria 'Alquiler' del periodo. Cuota = Base x {pct}% (% configurado en Ajustes del sistema). El arrendador debera recibir certificado anual de retenciones.")
+
+    pdf_buffer = io.BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
+    filename = f"borrador_modelo_115_{year}_T{quarter if quarter else 'Anual'}.pdf"
+    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+@router.get("/modelo-390-pdf")
+def download_modelo_390_pdf(
+    year: int = 2026,
+    session: Session = Depends(get_session)
+):
+    config = session.exec(select(ConfiguracionFiscal).where(ConfiguracionFiscal.id == 1)).first()
+    summary = get_fiscal_summary(quarter=None, year=year, session=session)
+
+    pdf = FiscalPDF()
+    pdf.alias_nb_pages()
+    pdf.add_page()
+    pdf.set_text_color(51, 65, 85)
+
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 8, "MODELO 390 - RESUMEN ANUAL IVA (HACIENDA BIZKAIA)", ln=True)
+    
+    # Aviso borrador
+    pdf.set_fill_color(254, 243, 199)
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.cell(0, 8, "BORRADOR DE REFERENCIA - Presentacion oficial en bizkaia.eus (sede electronica)", ln=True, align="C", fill=True)
+    pdf.ln(6)
+
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "DATOS DEL DECLARANTE Y ACTIVIDAD", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 5, f"Titular: {config.titular if config else 'N/A'} | NIF: {config.nif if config else 'N/A'}", ln=True)
+    pdf.cell(0, 5, f"Ejercicio Fiscal: {year} | Epigrafe IAE: {config.epigrafe if config else 'N/A'}", ln=True)
+    pdf.ln(6)
+
+    # I. IVA DEVENGADO (OPERACIONES INTERIORES)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "I. IVA DEVENGADO (VENTAS/INGRESOS ACUMULADOS)", ln=True)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(90, 6, "Concepto", border=1)
+    pdf.cell(35, 6, "Base Imponible", border=1, align="R")
+    pdf.cell(20, 6, "Tipo %", border=1, align="C")
+    pdf.cell(35, 6, "Cuota IVA", border=1, align="R", ln=True)
+
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(90, 6, "Régimen General / Comercio (10%)", border=1)
+    pdf.cell(35, 6, f"{summary['ventasBase']:.2f} EUR", border=1, align="R")
+    pdf.cell(20, 6, "10%", border=1, align="C")
+    pdf.cell(35, 6, f"{summary['ventasIva']:.2f} EUR", border=1, align="R", ln=True)
+    
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(145, 6, "TOTAL IVA DEVENGADO ANUAL:", border=1)
+    pdf.cell(35, 6, f"{summary['ventasIva']:.2f} EUR", border=1, align="R", ln=True)
+    pdf.ln(6)
+
+    # II. IVA DEDUCIBLE (GASTOS ACUMULADOS)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "II. IVA DEDUCIBLE (COMPRAS Y GASTOS ACUMULADOS)", ln=True)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(90, 6, "Concepto", border=1)
+    pdf.cell(35, 6, "Base Imponible", border=1, align="R")
+    pdf.cell(55, 6, "Cuota Deducible", border=1, align="R", ln=True)
+
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(90, 6, "Operaciones Interiores Corrientes", border=1)
+    pdf.cell(35, 6, f"{summary['baseGastosDeducible']:.2f} EUR", border=1, align="R")
+    pdf.cell(55, 6, f"{summary['ivaGastosDeducible']:.2f} EUR", border=1, align="R", ln=True)
+
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(125, 6, "TOTAL IVA DEDUCIBLE ANUAL:", border=1)
+    pdf.cell(55, 6, f"{summary['ivaGastosDeducible']:.2f} EUR", border=1, align="R", ln=True)
+    pdf.ln(6)
+
+    # RESULTADO LIQUIDACION ANUAL
+    pdf.set_font("Helvetica", "B", 11)
+    res_text = "RESULTADO DE LA LIQUIDACIÓN ANUAL (A INGRESAR / DEVOLVER):"
+    res_val = summary['balanceIVA']
+    pdf.cell(125, 8, res_text, border=1)
+    pdf.cell(55, 8, f"{res_val:.2f} EUR", border=1, align="R", ln=True)
+
+    pdf_buffer = io.BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
+    filename = f"borrador_modelo_390_{year}_Anual.pdf"
+    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+
+@router.get("/modelo-190-pdf")
+def download_modelo_190_pdf(
+    year: int = 2026,
+    session: Session = Depends(get_session)
+):
+    config = session.exec(select(ConfiguracionFiscal).where(ConfiguracionFiscal.id == 1)).first()
+    summary = get_fiscal_summary(quarter=None, year=year, session=session)
+
+    pdf = FiscalPDF()
+    pdf.alias_nb_pages()
+    pdf.add_page()
+    pdf.set_text_color(51, 65, 85)
+
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 8, "MODELO 190 - RESUMEN ANUAL RETENCIONES PERSONAL (BIZKAIA)", ln=True)
+    
+    # Aviso borrador
+    pdf.set_fill_color(254, 243, 199)
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.cell(0, 8, "BORRADOR DE REFERENCIA - Presentacion oficial en bizkaia.eus (sede electronica)", ln=True, align="C", fill=True)
+    pdf.ln(6)
+
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "DATOS DEL DECLARANTE Y EJERCICIO", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 5, f"Titular: {config.titular if config else 'N/A'} | NIF: {config.nif if config else 'N/A'}", ln=True)
+    pdf.cell(0, 5, f"Ejercicio Fiscal: {year}", ln=True)
+    pdf.ln(6)
+
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(80, 6, "Concepto Retención", border=1)
+    pdf.cell(30, 6, "Nº Perceptores", border=1, align="C")
+    pdf.cell(35, 6, "Base Percepciones", border=1, align="R")
+    pdf.cell(35, 6, "Total Retenciones", border=1, align="R", ln=True)
+
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(80, 6, "Clave A - Rendimientos del Trabajo (Nóminas)", border=1)
+    pdf.cell(30, 6, str(summary['numPerceptoresNominas']), border=1, align="C")
+    pdf.cell(35, 6, f"{summary['baseNominas']:.2f} EUR", border=1, align="R")
+    pdf.cell(35, 6, f"{summary['retencionesNominas']:.2f} EUR", border=1, align="R", ln=True)
+
+    pdf_buffer = io.BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
+    filename = f"resumen_anual_modelo_190_{year}.pdf"
+    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+@router.get("/modelo-180-pdf")
+def download_modelo_180_pdf(
+    year: int = 2026,
+    session: Session = Depends(get_session)
+):
+    config = session.exec(select(ConfiguracionFiscal).where(ConfiguracionFiscal.id == 1)).first()
+    summary = get_fiscal_summary(quarter=None, year=year, session=session)
+
+    pdf = FiscalPDF()
+    pdf.alias_nb_pages()
+    pdf.add_page()
+    pdf.set_text_color(51, 65, 85)
+
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 8, "MODELO 180 - RESUMEN ANUAL RETENCIONES ALQUILER (BIZKAIA)", ln=True)
+    
+    # Aviso borrador
+    pdf.set_fill_color(254, 243, 199)
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.cell(0, 8, "BORRADOR DE REFERENCIA - Presentacion oficial en bizkaia.eus (sede electronica)", ln=True, align="C", fill=True)
+    pdf.ln(6)
+
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "DATOS DEL DECLARANTE Y EJERCICIO", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 5, f"Titular: {config.titular if config else 'N/A'} | NIF: {config.nif if config else 'N/A'}", ln=True)
+    pdf.cell(0, 5, f"Ejercicio Fiscal: {year}", ln=True)
+    pdf.ln(6)
+
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(110, 6, "Concepto", border=1)
+    pdf.cell(35, 6, "Base Imponible", border=1, align="R")
+    pdf.cell(35, 6, "Total Retenido (19%)", border=1, align="R", ln=True)
+
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(110, 6, "Rendimientos del Arrendamiento de Inmuebles Urbanos", border=1)
+    pdf.cell(35, 6, f"{summary['baseAlquiler']:.2f} EUR", border=1, align="R")
+    pdf.cell(35, 6, f"{summary['retencionesAlquiler']:.2f} EUR", border=1, align="R", ln=True)
+
+    pdf_buffer = io.BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
+    filename = f"resumen_anual_modelo_180_{year}.pdf"
+    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename={filename}"})
+

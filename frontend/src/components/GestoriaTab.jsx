@@ -223,24 +223,67 @@ export default function GestoriaTab({
                 {(fiscalData?.balanceIVA ?? 0).toLocaleString('es-ES')} €
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-4 font-black tracking-wider text-[10px] uppercase">
+            <div className="flex flex-wrap gap-4 font-black tracking-wider text-[10px] uppercase">
               <a 
                 href={`http://localhost:8001/api/exports/justificantes-zip${selectedQuarter ? `?quarter=${selectedQuarter}` : ''}`}
-                className="bg-slate-900 text-white px-8 py-5 rounded-2xl font-black hover:bg-slate-800 shadow-xl transition-colors flex items-center gap-3"
+                className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black hover:bg-slate-800 shadow-xl transition-colors flex items-center gap-2"
               >
-                <FileText size={16} /> Descargar justificantes (ZIP)
+                <FileText size={14} /> Justificantes (ZIP)
               </a>
               <a 
                 href={`http://localhost:8001/api/exports/modelo-303-pdf${selectedQuarter ? `?quarter=${selectedQuarter}` : ''}`}
-                className="bg-emerald-600 text-white px-8 py-5 rounded-2xl font-black hover:bg-emerald-500 shadow-xl transition-colors flex items-center gap-3"
+                className="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black hover:bg-emerald-500 shadow-xl transition-colors flex items-center gap-2"
               >
-                <FileText size={16} /> Descargar Borrador 303 (PDF)
+                <FileText size={14} /> Mod 303 IVA (PDF)
+              </a>
+              <a 
+                href={`http://localhost:8001/api/exports/modelo-111-pdf${selectedQuarter ? `?quarter=${selectedQuarter}` : ''}`}
+                className="bg-amber-600 text-white px-6 py-4 rounded-2xl font-black hover:bg-amber-500 shadow-xl transition-colors flex items-center gap-2"
+              >
+                <FileText size={14} /> Mod 111 Nóminas (PDF)
+              </a>
+              <a 
+                href={`http://localhost:8001/api/exports/modelo-115-pdf${selectedQuarter ? `?quarter=${selectedQuarter}` : ''}`}
+                className="bg-rose-600 text-white px-6 py-4 rounded-2xl font-black hover:bg-rose-500 shadow-xl transition-colors flex items-center gap-2"
+              >
+                <FileText size={14} /> Mod 115 Alquiler (PDF)
               </a>
               <a 
                 href={`http://localhost:8001/api/exports/lroe-xml${selectedQuarter ? `?quarter=${selectedQuarter}` : ''}`}
-                className="bg-indigo-600 text-white px-8 py-5 rounded-2xl font-black hover:bg-indigo-500 shadow-xl transition-colors flex items-center gap-3"
+                className="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black hover:bg-blue-500 shadow-xl transition-colors flex items-center gap-2"
               >
-                <FileCheck2 size={16} /> Generar LROE XML (Mod. 140)
+                <Download size={14} /> LROE Batuz (XML)
+              </a>
+            </div>
+          </div>
+
+          {/* SECCIÓN CIERRE ANUAL (INFORMATIVOS) */}
+          <div className="mt-12 pt-8 border-t border-slate-200">
+            <h5 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4 italic">Cierre Anual Fiscal (Modelos Informativos Enero)</h5>
+            <div className="flex flex-wrap gap-4 font-black tracking-wider text-[10px] uppercase">
+              <a 
+                href="http://localhost:8001/api/exports/modelo-390-pdf"
+                className="bg-slate-800 text-emerald-400 border border-emerald-500/30 px-6 py-3.5 rounded-2xl font-black hover:bg-slate-900 shadow-lg transition-all flex items-center gap-2"
+              >
+                <FileText size={14} /> Mod 390 Resumen IVA (PDF)
+              </a>
+              <a 
+                href="http://localhost:8001/api/exports/modelo-190-pdf"
+                className="bg-slate-800 text-indigo-400 border border-indigo-500/30 px-6 py-3.5 rounded-2xl font-black hover:bg-slate-900 shadow-lg transition-all flex items-center gap-2"
+              >
+                <FileText size={14} /> Mod 190 Resumen Nóminas (PDF)
+              </a>
+              <a 
+                href="http://localhost:8001/api/exports/modelo-180-pdf"
+                className="bg-slate-800 text-rose-400 border border-rose-500/30 px-6 py-3.5 rounded-2xl font-black hover:bg-slate-900 shadow-lg transition-all flex items-center gap-2"
+              >
+                <FileText size={14} /> Mod 180 Resumen Alquiler (PDF)
+              </a>
+              <a 
+                href="http://localhost:8001/api/exports/lroe-xml"
+                className="bg-slate-800 text-blue-400 border border-blue-500/30 px-6 py-3.5 rounded-2xl font-black hover:bg-slate-900 shadow-lg transition-all flex items-center gap-2"
+              >
+                <Download size={14} /> LROE Anual Completo (XML)
               </a>
             </div>
           </div>
@@ -297,24 +340,36 @@ export default function GestoriaTab({
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-2 leading-none">Beneficio de Bolsillo Anual</p>
               <p className="text-7xl font-black tracking-tighter leading-none text-emerald-900">{(fiscalData?.beneficioReal ?? 0).toLocaleString('es-ES')} €</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-4 font-black text-[10px] tracking-widest">
+            <div className="flex flex-wrap gap-4 font-black text-[10px] tracking-widest">
               <a 
                 href="http://localhost:8001/api/exports/justificantes-zip"
-                className="bg-slate-900 text-white px-8 py-5 rounded-2xl font-black hover:bg-slate-800 shadow-xl transition-colors flex items-center gap-3"
+                className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black hover:bg-slate-800 shadow-xl transition-colors flex items-center gap-2"
               >
-                <FileText size={16} /> Descargar Lote Cierre (ZIP)
+                <FileText size={14} /> Lote Cierre (ZIP)
               </a>
               <a 
                 href="http://localhost:8001/api/exports/modelo-130-pdf"
-                className="bg-emerald-600 text-white px-8 py-5 rounded-2xl font-black hover:bg-emerald-500 shadow-xl transition-colors flex items-center gap-3"
+                className="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black hover:bg-emerald-500 shadow-xl transition-colors flex items-center gap-2"
               >
-                <FileText size={16} /> Descargar Borrador 130 (PDF)
+                <FileText size={14} /> Borrador 130 IRPF (PDF)
+              </a>
+              <a 
+                href="http://localhost:8001/api/exports/modelo-190-pdf"
+                className="bg-amber-600 text-white px-6 py-4 rounded-2xl font-black hover:bg-amber-500 shadow-xl transition-colors flex items-center gap-2"
+              >
+                <FileText size={14} /> Mod 190 Anual Personal (PDF)
+              </a>
+              <a 
+                href="http://localhost:8001/api/exports/modelo-180-pdf"
+                className="bg-rose-600 text-white px-6 py-4 rounded-2xl font-black hover:bg-rose-500 shadow-xl transition-colors flex items-center gap-2"
+              >
+                <FileText size={14} /> Mod 180 Anual Alquiler (PDF)
               </a>
               <a 
                 href="http://localhost:8001/api/exports/lroe-xml"
-                className="bg-indigo-900 text-white px-8 py-5 rounded-2xl font-black hover:bg-indigo-800 transition-colors flex items-center gap-3"
+                className="bg-indigo-900 text-white px-6 py-4 rounded-2xl font-black hover:bg-indigo-800 transition-colors flex items-center gap-2"
               >
-                <FileCheck2 size={16} /> Generar XML Hacienda Foral
+                <FileCheck2 size={14} /> XML LROE Batuz
               </a>
             </div>
           </div>

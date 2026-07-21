@@ -93,6 +93,9 @@ def get_fiscal_summary(
     baseGastosDeducible = 0.0
     retencionesAlquiler = 0.0
     retencionesNominas = 0.0
+    baseNominas = 0.0
+    baseAlquiler = 0.0
+    numPerceptoresNominas = 0
 
     for g in gastos:
         importe = g.importe or 0.0
@@ -106,8 +109,11 @@ def get_fiscal_summary(
         baseGastosDeducible += base * pctIrpf
 
         if g.categoria == 'Alquiler':
+            baseAlquiler += base
             retencionesAlquiler += base * ((config.retencionAlquiler or 0) / 100)
         elif g.categoria == 'Nóminas y Personal':
+            baseNominas += base
+            numPerceptoresNominas += 1
             retencionesNominas += base * ((config.retencionNominas or 0) / 100)
 
     totalGastosFinal = totalGastosBrutos + simExtraCost
@@ -139,6 +145,11 @@ def get_fiscal_summary(
         "totalGastos": totalGastosFinal,
         "ivaGastos": ivaGastosDeducible,
         "baseGastosDeducible": baseGastosDeducible,
+        "baseNominas": baseNominas,
+        "baseAlquiler": baseAlquiler,
+        "numPerceptoresNominas": numPerceptoresNominas,
+        "pctRetencionNominas": config.retencionNominas if config else 2,
+        "pctRetencionAlquiler": config.retencionAlquiler if config else 19,
         "retencionesAlquiler": retencionesAlquiler,
         "retencionesNominas": retencionesNominas,
         "balanceIVA": balanceIVA,

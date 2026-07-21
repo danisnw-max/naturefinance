@@ -5,6 +5,19 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-07-21
+
+### Añadido
+- **Cierre Anual Fiscal (Modelos Informativos Bizkaia)**:
+  - Implementado el endpoint `GET /api/exports/modelo-390-pdf` para la generación del borrador del **Modelo 390 (Resumen Anual IVA)** desglosando volumen de operaciones, cuota devengada al 10% y cuota deducible de compras/gastos de todo el ejercicio.
+  - Ampliados los endpoints `download_modelo_190_pdf` (Retenciones de Personal - Clave A y perceptores) y `download_modelo_180_pdf` (Retenciones de Alquiler de Local) para reflejar los cuadros anuales completos exigidos por Bizkaia.
+  - Añadida nueva sección de **Cierre Anual Fiscal** en el Portal de Gestoría (`GestoriaTab.jsx`) con botones de descarga directa para los Modelos 390, 190, 180 y el fichero LROE Anual Completo (XML).
+- **Gestión Manual de Estados en el Calendario Fiscal**:
+  - Convertidos los iconos de los modelos en `CalendarioTab.jsx` en botones interactivos.
+  - Permite marcar o desmarcar manualmente los modelos como *"Presentados"* o *"Pendientes"*, guardando el estado en `localStorage` de forma independiente por trimestre/año.
+
+---
+
 ## [1.3.1] - 2026-07-21
 
 ### Cambiado
