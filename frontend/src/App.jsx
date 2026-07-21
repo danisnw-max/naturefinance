@@ -155,7 +155,7 @@ export default function App() {
       if (selectedQuarter) queryParams.push(`quarter=${selectedQuarter}`);
       
       const res = await api.get(`/gastos/summary?${queryParams.join('&')}`);
-      setAllGastos(res.gastosAgrupados || []);
+      setAllGastos(res.items || []);
     } catch (err) {
       console.error("Error loading gastos summary:", err);
     }

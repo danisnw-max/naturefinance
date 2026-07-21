@@ -99,15 +99,37 @@ def get_gastos_summary(
             
     gastos = session.exec(query).all()
     
-    grupos = {}
+    raw_items = []
     uploaded_docs = {}
+    grupos = {}
+
     for g in gastos:
+        # Determine fiscal model category
+        if g.categoria == 'Alquiler':
+            modelo_asociado = '115'
+        elif g.categoria in ['Nóminas y Personal', 'Servicios Profesionales / Autónomos']:
+            modelo_asociado = '111'
+        else:
+            modelo_asociado = '303'
+
+        raw_items.append({
+            "id": g.id,
+            "fecha": g.fecha,
+            "concepto": g.concepto,
+            "categoria": g.categoria,
+            "importe": g.importe,
+            "iva": g.iva,
+            "justificante_filename": g.justificante_filename,
+            "modelo_asociado": modelo_asociado
+        })
+
         if g.concepto not in grupos:
             grupos[g.concepto] = {
                 "proveedor": g.concepto,
                 "categoria": g.categoria,
                 "cantidadFacturas": 0,
-                "importeTotal": 0.0
+                "importeTotal": 0.0,
+                "modelo_asociado": modelo_asociado
             }
         grupos[g.concepto]["cantidadFacturas"] += 1
         grupos[g.concepto]["importeTotal"] += g.importe
@@ -116,6 +138,7 @@ def get_gastos_summary(
             uploaded_docs[g.concepto] = g.justificante_filename
             
     return {
+        "items": raw_items,
         "gastosAgrupados": list(grupos.values()),
         "uploadedDocs": uploaded_docs,
         "totalGastosCount": len(gastos)

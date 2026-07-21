@@ -37,11 +37,35 @@ export default function GestoriaTab({
     return allMonths.filter(m => m.value >= (q - 1) * 3 + 1 && m.value <= q * 3);
   }, [selectedQuarter]);
 
-  const localGastosAgrupados = React.useMemo(() => {
+  const filteredItems = React.useMemo(() => {
     if (!Array.isArray(allGastos)) return [];
     if (docMonthFilter === 'all') return allGastos;
-    return allGastos.filter(g => g.mes === docMonthFilter || g.month === docMonthFilter);
+    return allGastos.filter(g => {
+      const monthNum = parseInt(g.fecha?.split('-')[1], 10);
+      return monthNum === docMonthFilter;
+    });
   }, [allGastos, docMonthFilter]);
+
+  const modelStats = React.useMemo(() => {
+    const models = {
+      '303': { name: 'Modelo 303 (IVA - Facturas Recibidas)', items: [], total: 0, uploaded: 0 },
+      '111': { name: 'Modelo 111 (IRPF - Nóminas y Autónomos)', items: [], total: 0, uploaded: 0 },
+      '115': { name: 'Modelo 115 (IRPF - Alquiler Local)', items: [], total: 0, uploaded: 0 }
+    };
+
+    filteredItems.forEach(g => {
+      const modKey = g.modelo_asociado || (g.categoria === 'Alquiler' ? '115' : (g.categoria === 'Nóminas y Personal' || g.categoria === 'Servicios Profesionales / Autónomos') ? '111' : '303');
+      if (models[modKey]) {
+        models[modKey].items.push(g);
+        models[modKey].total += 1;
+        if (g.justificante_filename) {
+          models[modKey].uploaded += 1;
+        }
+      }
+    });
+
+    return models;
+  }, [filteredItems]);
 
   // Reset month filter when quarter changes
   React.useEffect(() => {
@@ -139,14 +163,14 @@ export default function GestoriaTab({
             />
           </div>
           
-          {/* Document Manager */}
+          {/* Document Manager Organized by Fiscal Models */}
           <div className="bg-white/5 border border-white/10 rounded-[32px] p-8 mb-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-white/5 pb-6">
               <div className="flex items-center gap-3">
                 <FileCheck2 className="text-emerald-400" size={28} />
                 <div>
-                  <h4 className="text-lg font-black italic uppercase tracking-widest leading-none">Gestor Documental</h4>
-                  <span className="text-[10px] text-slate-400 uppercase tracking-widest normal-case font-bold">Estado de facturas justificantes por proveedor en esta página</span>
+                  <h4 className="text-lg font-black italic uppercase tracking-widest leading-none">Gestor Documental por Modelos Tributarios</h4>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-widest normal-case font-bold">Verificación de justificantes requeridos para cada modelo oficial de Hacienda</span>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -155,62 +179,71 @@ export default function GestoriaTab({
                   onChange={(e) => setDocMonthFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
                   className="bg-slate-900 border border-emerald-500/30 text-emerald-400 text-[10px] font-black rounded-xl px-4 py-3 outline-none cursor-pointer uppercase tracking-widest transition-all focus:border-emerald-500"
                 >
-                  <option value="all">TODOS LOS MESES</option>
+                  <option value="all">TODOS LOS MESES DEL TRIMESTRE</option>
                   {availableMonths.map(m => (
                     <option key={m.value} value={m.value}>{m.label}</option>
                   ))}
                 </select>
-                <div className="bg-slate-950/50 text-emerald-400 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-emerald-500/20">
-                  {Object.keys(uploadedDocs).length} / {localGastosAgrupados.length} Prov.
-                </div>
               </div>
             </div>
 
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-              {localGastosAgrupados.length === 0 ? (
-                <div className="text-center py-12 text-slate-500 text-xs font-black uppercase tracking-widest">
-                  No hay gastos registrados en este periodo
-                </div>
-              ) : (
-                localGastosAgrupados.map(grupo => {
-                const docName = uploadedDocs[grupo.proveedor];
+            {/* Fiscal Models Accordions / Blocks */}
+            <div className="space-y-8">
+              {['303', '111', '115'].map(modKey => {
+                const mod = modelStats[modKey];
+                const isComplete = mod.total > 0 && mod.uploaded === mod.total;
+                const isEmpty = mod.total === 0;
+
                 return (
-                  <div 
-                    key={grupo.proveedor} 
-                    className={`flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border transition-all ${docName ? 'bg-emerald-900/20 border-emerald-500/30' : 'bg-black/20 border-white/5'}`}
-                  >
-                    <div className="leading-tight flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-white text-sm font-black uppercase truncate">{grupo.proveedor}</p>
-                        <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[8px] uppercase tracking-widest">
-                          {grupo.categoria}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
-                        {grupo.cantidadFacturas} Fra(s) • Total: {grupo.importeTotal.toLocaleString('es-ES')}€
-                      </span>
-                    </div>
-                    <div>
-                      {docName ? (
-                        <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-black uppercase bg-emerald-500/10 px-4 py-2.5 rounded-xl border border-emerald-500/20">
-                          <CheckCircle2 size={14} /> {docName}
+                  <div key={modKey} className={`rounded-2xl border p-6 transition-all ${isEmpty ? 'bg-black/10 border-white/5 opacity-60' : isComplete ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-amber-950/20 border-amber-500/30'}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-white/5">
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <h5 className="text-white text-base font-black uppercase tracking-wider">{mod.name}</h5>
+                          <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${isEmpty ? 'bg-slate-800 text-slate-400 border-slate-700' : isComplete ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'}`}>
+                            {isEmpty ? 'Sin gastos' : isComplete ? '✓ 100% Completo' : '⚠️ Justificantes Pendientes'}
+                          </span>
                         </div>
-                      ) : (
-                        <label className="cursor-pointer bg-emerald-500 text-slate-900 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-400 flex items-center gap-2 transition-all">
-                          <Upload size={14} /> Subir PDF
-                          <input 
-                            type="file" 
-                            accept="application/pdf,image/*"
-                            className="hidden" 
-                            onChange={(e) => onDocUpload(grupo.proveedor, e)} 
-                          />
-                        </label>
-                      )}
+                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-1">
+                          {isEmpty ? 'No se han registrado operaciones para este modelo en el periodo' : `${mod.uploaded} de ${mod.total} documentos adjuntos`}
+                        </p>
+                      </div>
                     </div>
+
+                    {!isEmpty && (
+                      <div className="space-y-3">
+                        {mod.items.map(item => (
+                          <div key={item.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border ${item.justificante_filename ? 'bg-emerald-900/10 border-emerald-500/20' : 'bg-black/30 border-white/5'}`}>
+                            <div className="leading-tight">
+                              <p className="text-white text-xs font-black uppercase">{item.concepto}</p>
+                              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                                {item.fecha} • {item.categoria} • {item.importe.toLocaleString('es-ES')} €
+                              </span>
+                            </div>
+                            <div>
+                              {item.justificante_filename ? (
+                                <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-black uppercase bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-500/20">
+                                  <CheckCircle2 size={13} /> {item.justificante_filename}
+                                </div>
+                              ) : (
+                                <label className="cursor-pointer bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all">
+                                  <Upload size={13} /> Subir PDF
+                                  <input 
+                                    type="file" 
+                                    accept="application/pdf,image/*"
+                                    className="hidden" 
+                                    onChange={(e) => onDocUpload(item.concepto, e)} 
+                                  />
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
-              })
-              )}
+              })}
             </div>
           </div>
 
