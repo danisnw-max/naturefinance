@@ -114,6 +114,7 @@ export default function App() {
     count_justificantes: 0,
     count_total: 0
   });
+  const [allGastos, setAllGastos] = useState([]);
 
   // Fetch paginated expenses
   const fetchGastos = async (currentPage) => {
@@ -145,6 +146,20 @@ export default function App() {
       }
     } catch (err) {
       console.error("Error loading expenses:", err);
+    }
+  };
+
+  const fetchAllGastos = async () => {
+    try {
+      const queryParams = [`page=1`, `limit=5000`, `year=${filterYear}`];
+      if (filterQuarter !== 'all') queryParams.push(`quarter=${filterQuarter}`);
+      if (filterMonth !== 'all') queryParams.push(`month=${filterMonth}`);
+      if (filterCategoria !== 'all') queryParams.push(`categoria=${encodeURIComponent(filterCategoria)}`);
+      
+      const res = await api.get(`/gastos?${queryParams.join('&')}`);
+      setAllGastos(res.items || []);
+    } catch (err) {
+      console.error("Error loading all expenses:", err);
     }
   };
 
@@ -186,6 +201,7 @@ export default function App() {
       }
       
       await fetchGastos(page);
+      await fetchAllGastos();
     } catch (err) {
       console.error("Error loading data from API:", err);
     }
@@ -200,9 +216,10 @@ export default function App() {
     fetchGastos(page);
   }, [page, filterYear, filterQuarter, filterMonth, filterCategoria, filterSinJustificante]);
 
-  // When filters change, reset page to 1
+  // When filters change, reset page to 1 and reload allGastos
   useEffect(() => {
     setPage(1);
+    fetchAllGastos();
   }, [filterYear, filterQuarter, filterMonth, filterCategoria, filterSinJustificante]);
 
   // Reactive effect to load server calculated fiscal reports when inputs change
@@ -239,10 +256,8 @@ export default function App() {
 
   const gastosAgrupados = useMemo(() => {
     const grupos = {};
-    // Aggregate over all expenses (we fetch all from backend for reporting list)
-    // For simplicity, we can aggregate over the visible list, or fetch all.
-    // Let's do it on the current page list or keep it simple.
-    gastos.forEach(g => {
+    // Aggregate over all expenses in the selected period to show a complete Document Manager
+    allGastos.forEach(g => {
       if (!grupos[g.concepto]) {
         grupos[g.concepto] = { proveedor: g.concepto, categoria: g.categoria, cantidadFacturas: 0, importeTotal: 0 };
       }
@@ -250,17 +265,17 @@ export default function App() {
       grupos[g.concepto].importeTotal += g.importe;
     });
     return Object.values(grupos);
-  }, [gastos]);
+  }, [allGastos]);
 
   const uploadedDocs = useMemo(() => {
     const docs = {};
-    gastos.forEach(g => {
+    allGastos.forEach(g => {
       if (g.justificante_filename) {
         docs[g.concepto] = g.justificante_filename;
       }
     });
     return docs;
-  }, [gastos]);
+  }, [allGastos]);
 
   const fiscalCalendar = useMemo(() => {
     const now = new Date();
