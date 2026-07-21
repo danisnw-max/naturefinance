@@ -8,6 +8,9 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
     mod130: false,
     mod111: false,
     mod115: false,
+    mod390: false,
+    mod190: false,
+    mod180: false,
   });
 
   // Cargar estado desde localStorage al montar o al cambiar de trimestre
@@ -22,6 +25,9 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
         mod130: false,
         mod111: false,
         mod115: false,
+        mod390: false,
+        mod190: false,
+        mod180: false,
       });
     }
   }, [fiscalCalendar.quarter]);
@@ -148,11 +154,53 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
 
           {/* Resumen Informativos Anuales */}
           <div className="bg-white/5 p-8 rounded-[32px] border border-white/10 uppercase font-black italic">
-            <h4 className="font-black uppercase tracking-widest text-xs text-slate-400 mb-6">Modelos Informativos Anuales (Enero)</h4>
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="font-black uppercase tracking-widest text-xs text-slate-400">Modelos Informativos Anuales (Vencimiento Enero)</h4>
+              <span className="text-[10px] text-slate-500 font-bold normal-case italic">Haz clic en cada modelo para marcar como presentado</span>
+            </div>
             <div className="flex flex-wrap gap-4">
-              <span className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">390 (Resumen IVA)</span>
-              <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${fiscalData.retencionesNominas > 0 ? 'bg-indigo-600 text-white' : 'bg-slate-800/50 text-slate-500'}`}>190 (Resumen Nóminas)</span>
-              <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${fiscalData.retencionesAlquiler > 0 ? 'bg-rose-600 text-white' : 'bg-slate-800/50 text-slate-500'}`}>180 (Resumen Alquileres)</span>
+              {/* Modelo 390 */}
+              <button
+                onClick={() => toggleStatus('mod390')}
+                className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border transition-all cursor-pointer ${
+                  modelStatus.mod390 
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.3)]' 
+                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-500'
+                }`}
+              >
+                {modelStatus.mod390 ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Clock size={14} className="text-slate-400" />}
+                390 (Resumen IVA) - {modelStatus.mod390 ? 'Presentado' : 'Pendiente'}
+              </button>
+
+              {/* Modelo 190 */}
+              <button
+                onClick={() => toggleStatus('mod190')}
+                className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border transition-all cursor-pointer ${
+                  modelStatus.mod190 
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.3)]' 
+                    : fiscalData.retencionesNominas > 0 
+                      ? 'bg-indigo-900/40 text-indigo-300 border-indigo-500/40 hover:border-indigo-400' 
+                      : 'bg-slate-800/50 text-slate-500 border-slate-800'
+                }`}
+              >
+                {modelStatus.mod190 ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Clock size={14} className="text-indigo-400" />}
+                190 (Resumen Nóminas) - {modelStatus.mod190 ? 'Presentado' : 'Pendiente'}
+              </button>
+
+              {/* Modelo 180 */}
+              <button
+                onClick={() => toggleStatus('mod180')}
+                className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border transition-all cursor-pointer ${
+                  modelStatus.mod180 
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.3)]' 
+                    : fiscalData.retencionesAlquiler > 0 
+                      ? 'bg-rose-900/40 text-rose-300 border-rose-500/40 hover:border-rose-400' 
+                      : 'bg-slate-800/50 text-slate-500 border-slate-800'
+                }`}
+              >
+                {modelStatus.mod180 ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Clock size={14} className="text-rose-400" />}
+                180 (Resumen Alquileres) - {modelStatus.mod180 ? 'Presentado' : 'Pendiente'}
+              </button>
             </div>
           </div>
 
