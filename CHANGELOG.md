@@ -5,9 +5,17 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] - 2026-07-20
+## [1.3.1] - 2026-07-21
 
-### Añadido
+### Cambiado
+- **Manejo de Devoluciones (Tienda -> Contable)**:
+  - Eliminada la creación automática de un registro individual en el Libro de Gastos por cada devolución de venta. 
+  - Las devoluciones ahora solo impactan el sistema como tickets con importe negativo, restándose automáticamente del volumen total de ventas al sincronizar los ingresos, consolidando todo el flujo en el Portal de Cierre sin generar gastos redundantes.
+  - Eliminados los registros históricos de "Devolución de Ventas" en el Libro de Gastos para limpiar el historial.
+
+---
+
+## [1.3.0] - 2026-07-20### Añadido
 - **Envío de Nóminas por Email**:
   - Nuevo enrutador `backend/routers/empleados.py` para consultar la lista de empleados directamente desde la base de datos de la tienda.
   - Nuevo endpoint `POST /api/gastos/{gasto_id}/send-email` que lee la configuración SMTP de la tienda y envía por correo electrónico la nómina en PDF al empleado seleccionado.
