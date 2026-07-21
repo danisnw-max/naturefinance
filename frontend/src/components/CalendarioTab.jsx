@@ -80,15 +80,9 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
                 <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mt-1">Cierre en Curso: {fiscalCalendar.quarter}</p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="bg-white/10 px-6 py-3 rounded-2xl border border-white/20">
-                <span className="text-[10px] uppercase tracking-widest text-slate-400 block mb-1">Límite Trimestral</span>
-                <span className="font-black text-white">{fiscalCalendar.nextDeadline}</span>
-              </div>
-              <div className="bg-amber-500/10 px-6 py-3 rounded-2xl border border-amber-500/30">
-                <span className="text-[10px] uppercase tracking-widest text-amber-400/80 block mb-1">Límite Cierre Anual</span>
-                <span className="font-black text-amber-300">31 de Enero</span>
-              </div>
+            <div className="bg-white/10 px-6 py-3 rounded-2xl border border-white/20">
+              <span className="text-[10px] uppercase tracking-widest text-slate-400 block mb-1">Fecha Límite Hacienda Foral</span>
+              <span className="font-black text-white">{fiscalCalendar.nextDeadline}</span>
             </div>
           </div>
 
@@ -160,9 +154,15 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
 
           {/* Resumen Informativos Anuales */}
           <div className="bg-white/5 p-8 rounded-[32px] border border-white/10 uppercase font-black italic">
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="font-black uppercase tracking-widest text-xs text-slate-400">Modelos Informativos Anuales</h4>
-              <span className="text-[10px] text-slate-500 font-bold normal-case italic">Haz clic en cada modelo para marcar como presentado</span>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
+              <div>
+                <h4 className="font-black uppercase tracking-widest text-xs text-slate-400 mb-2">Modelos Informativos Anuales</h4>
+                <span className="text-[10px] text-slate-500 font-bold normal-case italic block">Haz clic en cada modelo para marcar como presentado</span>
+              </div>
+              <div className="bg-white/10 px-6 py-3 rounded-2xl border border-white/20">
+                <span className="text-[10px] uppercase tracking-widest text-slate-400 block mb-1">Fecha Límite Hacienda Foral</span>
+                <span className="font-black text-white">31 de Enero</span>
+              </div>
             </div>
             <div className="flex flex-wrap gap-4">
               {/* Modelo 390 */}
