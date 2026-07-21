@@ -5,6 +5,18 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-07-21
+
+### Añadido
+- **Filtro de Meses en Gestor Documental**:
+  - Añadido un desplegable de selección de mes en la cabecera del Gestor Documental (`GestoriaTab.jsx`) para filtrar las facturas justificantes por mes específico del trimestre.
+
+### Corregido
+- **Nombres de Conceptos en Autogeneración de Gastos Fijos**:
+  - Corregido el endpoint de autogeneración de gastos fijos (`backend/routers/gastos.py`) para que reemplace dinámicamente las cadenas tipo `MM/YYYY` en el concepto al duplicar gastos de meses anteriores.
+
+---
+
 ## [1.4.0] - 2026-07-21
 
 ### Añadido

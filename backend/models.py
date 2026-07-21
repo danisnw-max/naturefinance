@@ -22,10 +22,10 @@ class ConfiguracionFiscal(SQLModel, table=True):
 class Gasto(SQLModel, table=True):
     __tablename__ = "gasto"
     id: Optional[int] = Field(default=None, primary_key=True)
-    fecha: str  # YYYY-MM-DD
+    fecha: str = Field(index=True)  # YYYY-MM-DD
     diaCobro: int
-    categoria: str
-    concepto: str
+    categoria: str = Field(index=True)
+    concepto: str = Field(index=True)
     importe: float
     iva: int  # 0, 4, 10, 21
     deducibleIva: int  # 0-100
