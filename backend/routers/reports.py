@@ -124,6 +124,25 @@ def get_fiscal_summary(
 
     provisionIRPF = max(0.0, rendimientoNetoFinal * ((config.irpfProyectado or 0) / 100))
     beneficioReal = (adjustedIngresos - totalGastosFinal) - provisionIRPF - (balanceIVA if balanceIVA > 0 else 0)
+    cargaFiscalTotal = provisionIRPF + (balanceIVA if balanceIVA > 0 else 0) + retencionesAlquiler + retencionesNominas + retencionesProfesionales
+
+    # Métricas de Consultoría Financiera e Inversión
+    diasPeriodo = 90 if quarter is not None else 365
+    diasLaborables = 75 if quarter is not None else 300
+    
+    # Break-even daily revenue needed
+    gastosMensualizados = (totalGastosFinal + provisionIRPF + (balanceIVA if balanceIVA > 0 else 0)) / (3 if quarter is not None else 12)
+    breakEvenDiario = (totalGastosFinal + provisionIRPF + (balanceIVA if balanceIVA > 0 else 0)) / max(1, diasLaborables)
+
+    # Margen comercial %
+    margenOperativoPct = round(((adjustedIngresos - totalGastosFinal) / max(1.0, adjustedIngresos)) * 100, 1)
+
+    # Margen disponible para aprovechamiento 10% Difícil Justificación
+    margenDificilJustifDisponible = max(0.0, DIFICIL_JUSTIFICACION_LIMITE - gastoDificilJustificacion)
+
+    # Retirada máxima de caja segura (Respetando reserva de impuestos Mod 303, 111, 115 e IRPF)
+    retencionReservaImpuestos = (balanceIVA if balanceIVA > 0 else 0) + retencionesAlquiler + retencionesNominas + retencionesProfesionales + (provisionIRPF / 3 if quarter is not None else provisionIRPF / 12)
+    retiradaSeguraMensual = max(0.0, (beneficioReal / (3 if quarter is not None else 12)))
 
     return {
         "adjustedIngresos": adjustedIngresos,
@@ -148,8 +167,13 @@ def get_fiscal_summary(
         "variacionExistencias": variacionExistencias,
         "rendimientoNetoPrevio": rendimientoNetoPrevio,
         "gastoDificilJustificacion": gastoDificilJustificacion,
+        "margenDificilJustifDisponible": margenDificilJustifDisponible,
         "rendimientoNeto": rendimientoNetoFinal,
         "provisionIRPF": provisionIRPF,
         "beneficioReal": beneficioReal,
-        "cargaFiscalTotal": provisionIRPF + (balanceIVA if balanceIVA > 0 else 0) + retencionesAlquiler + retencionesNominas
+        "cargaFiscalTotal": cargaFiscalTotal,
+        "breakEvenDiario": breakEvenDiario,
+        "margenOperativoPct": margenOperativoPct,
+        "retencionReservaImpuestos": retencionReservaImpuestos,
+        "retiradaSeguraMensual": retiradaSeguraMensual
     }
