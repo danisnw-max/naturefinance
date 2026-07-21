@@ -22,11 +22,10 @@ Registro ordenado de tus operaciones de compra (con paginación automática):
 - Permite adjuntar el PDF o imagen de tu justificante directamente desde la tabla de operaciones, en cada fila.
 - Opción de marcar un gasto de gran valor (> 300€) como bien de inversión para amortizarlo linealmente.
 
-### 3. Cerebro Estratégico
-Simulador financiero interactivo con sliders que permite evaluar:
-- El impacto de añadir costes estructurales extra.
-- El ajuste de tus precios de venta sobre el beneficio.
-- Tu sueldo objetivo para determinar el excedente libre de la empresa.
+### 3. Cerebro Estratégico (Consultoría Inversora)
+Panel de inteligencia de negocio avanzado que actúa como tu consultor financiero personal:
+- **Análisis de Estado**: Tarjetas de diagnóstico que evalúan el margen de beneficio, el colchón fiscal (Safe Monthly Withdrawal) y el Break-Even diario (ventas necesarias por día para cubrir gastos).
+- **Simulador de Rentabilidad**: Ajuste interactivo de variables (gastos fijos, ticket medio, sueldo objetivo) para proyectar diferentes escenarios y recibir consejos estratégicos.
 
 ### 4. Calendario Fiscal
 Cálculo en tiempo real de los modelos oficiales de Bizkaia:
@@ -41,16 +40,13 @@ Cálculo en tiempo real de los modelos oficiales de Bizkaia:
 Visualiza el valor depreciado anual y mensual de tus inversiones duraderas, calculando el retorno de inversión (ROI) estimado.
 
 ### 6. Portal de Gestoría
-Gestión documental para cierres trimestrales y anuales:
-- **Sincronización Automática**: El sistema obtiene tus ingresos de forma invisible desde la base de datos de la tienda, manteniendo tus números actualizados cada vez que inicias sesión.
-- **Subida de Ventas (Opcional)**: Sigue disponible la importación del CSV si prefieres trabajar sin la conexión local directa.
-- **Gestor Documental**: Listado inteligente por proveedor que te indica qué justificante PDF te falta subir y permite cargarlos.
-- **Generación de Lotes Trimestrales**: Descarga de lote ZIP de justificantes, borradores PDF (303, 111, 115) y ficheros XML LROE por trimestre.
-- **Cierre Anual Fiscal (Modelos Informativos de Enero)**: Descarga de los resúmenes informativos exigidos por Hacienda Bizkaia:
-  - **Modelo 390 (PDF)**: Resumen Anual de IVA (Base imp. ventas, IVA devengado 10%, base/cuota deducible de compras y resultado anual).
-  - **Modelo 190 (PDF)**: Resumen Anual de Retenciones de Personal (Nóminas - Clave A, número de perceptores y retención total).
-  - **Modelo 180 (PDF)**: Resumen Anual de Retenciones sobre Alquileres de Inmuebles.
-  - **LROE Anual Completo (XML)**: Fichero XML con el histórico anual completo de Cap. 1 (Ingresos/Ventas), Cap. 2.1 (Gastos con Factura) y Cap. 2.2 (Gastos sin Factura/Nóminas).
+Gestión documental estructurada y optimizada para la declaración de impuestos:
+- **Organización por Modelos**: Los documentos se clasifican automáticamente en carpetas lógicas correspondientes a los modelos trimestrales (Modelo 303 de IVA, Modelos 111 y 115 de retenciones), evitando duplicidades.
+- **Auditoría Trimestral**: Revisa el estado de la documentación subida en el trimestre/mes seleccionado, permitiendo adjuntar justificantes o generar borradores PDF y archivos XML LROE (Batuz).
+- **Auditoría de Cierre Anual**: Bloque específico en la parte inferior para la campaña de enero:
+  - Generación de resúmenes informativos (390, 190, 180).
+  - LROE Anual Completo.
+  - Verificación de la variación de stock (Inventario Inicial vs Final).
 
 ### 7. Datos Fiscales
 Panel de configuración donde defines la identidad fiscal (Nombre, NIF, Dirección Fiscal) y los regímenes tributarios (como la estimación directa y variables de COGS / IVA).

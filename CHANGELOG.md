@@ -5,8 +5,27 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.1] - 2026-07-21
+## [1.5.0] - 2026-07-21
 
+### Añadido
+- **Cerebro Estratégico (Consultoría Financiera)**:
+  - Rediseño completo de la interfaz hacia un panel de inteligencia de negocio.
+  - Implementación de nuevas métricas de inversión: Break-Even diario, Safe Monthly Withdrawal (colchón fiscal) y Margen neto de beneficio.
+  - Simulador de rentabilidad avanzado con escenarios y consejos estratégicos.
+- **Auditoría de Cierre Anual**:
+  - Nueva sección visual "CIERRE FISCAL ANUAL 2026" en el Portal de Gestoría.
+  - Control de comprobación de modelos anuales (390, 190, 180) y cierre de variación de stock.
+
+### Cambiado
+- **Refactorización del Gestor Documental**:
+  - Los documentos ahora se agrupan por Modelo (303, 111, 115) para evitar repeticiones.
+  - Limpieza de la interfaz mensual, eliminando botones anuales y bloques redundantes en los trimestres, concentrándolos en el footer de Cierre Anual.
+- **Backend (Gastos)**:
+  - Refactorización de `gastos.py` para devolver resúmenes ordenados y estructurados directamente por tipo de documento fiscal, optimizando la carga en cliente.
+
+---
+
+## [1.4.1] - 2026-07-21
 ### Añadido
 - **Filtro de Meses en Gestor Documental**:
   - Añadido un desplegable de selección de mes en la cabecera del Gestor Documental (`GestoriaTab.jsx`) para filtrar las facturas justificantes por mes específico del trimestre.
