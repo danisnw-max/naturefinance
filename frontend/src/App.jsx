@@ -151,15 +151,14 @@ export default function App() {
 
   const fetchAllGastos = async () => {
     try {
-      const queryParams = [`page=1`, `limit=5000`, `year=${filterYear}`];
+      const queryParams = [`year=${filterYear}`];
       if (filterQuarter !== 'all') queryParams.push(`quarter=${filterQuarter}`);
       if (filterMonth !== 'all') queryParams.push(`month=${filterMonth}`);
-      if (filterCategoria !== 'all') queryParams.push(`categoria=${encodeURIComponent(filterCategoria)}`);
       
-      const res = await api.get(`/gastos?${queryParams.join('&')}`);
-      setAllGastos(res.items || []);
+      const res = await api.get(`/gastos/summary?${queryParams.join('&')}`);
+      setAllGastos(res.gastosAgrupados || []);
     } catch (err) {
-      console.error("Error loading all expenses:", err);
+      console.error("Error loading gastos summary:", err);
     }
   };
 

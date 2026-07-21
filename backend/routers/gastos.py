@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlmodel import Session, select, func
-from database import get_session
+from database import get_session, get_quarter_dates
 from models import Gasto
 from typing import List, Optional, Dict, Any
 import os
@@ -35,18 +35,8 @@ def list_gastos(
     if year:
         if month:
             query = query.where(Gasto.fecha.like(f"{year}-{month:02d}-%"))
-        elif quarter:
-            if quarter == 1:
-                start_date, end_date = f"{year}-01-01", f"{year}-03-31"
-            elif quarter == 2:
-                start_date, end_date = f"{year}-04-01", f"{year}-06-30"
-            elif quarter == 3:
-                start_date, end_date = f"{year}-07-01", f"{year}-09-30"
-            else:
-                start_date, end_date = f"{year}-10-01", f"{year}-12-31"
-            query = query.where(Gasto.fecha >= start_date).where(Gasto.fecha <= end_date)
         else:
-            start_date, end_date = f"{year}-01-01", f"{year}-12-31"
+            start_date, end_date = get_quarter_dates(year, quarter)
             query = query.where(Gasto.fecha >= start_date).where(Gasto.fecha <= end_date)
 
     if sin_justificante:
@@ -90,6 +80,45 @@ def list_gastos(
         "limit": limit,
         "pages": pages,
         "summary": summary
+    }
+
+@router.get("/summary")
+def get_gastos_summary(
+    year: Optional[int] = 2026,
+    quarter: Optional[int] = None,
+    month: Optional[int] = None,
+    session: Session = Depends(get_session)
+):
+    query = select(Gasto)
+    if year:
+        if month:
+            query = query.where(Gasto.fecha.like(f"{year}-{month:02d}-%"))
+        else:
+            start_date, end_date = get_quarter_dates(year, quarter)
+            query = query.where(Gasto.fecha >= start_date).where(Gasto.fecha <= end_date)
+            
+    gastos = session.exec(query).all()
+    
+    grupos = {}
+    uploaded_docs = {}
+    for g in gastos:
+        if g.concepto not in grupos:
+            grupos[g.concepto] = {
+                "proveedor": g.concepto,
+                "categoria": g.categoria,
+                "cantidadFacturas": 0,
+                "importeTotal": 0.0
+            }
+        grupos[g.concepto]["cantidadFacturas"] += 1
+        grupos[g.concepto]["importeTotal"] += g.importe
+        
+        if g.justificante_filename:
+            uploaded_docs[g.concepto] = g.justificante_filename
+            
+    return {
+        "gastosAgrupados": list(grupos.values()),
+        "uploadedDocs": uploaded_docs,
+        "totalGastosCount": len(gastos)
     }
 
 @router.post("", response_model=Gasto)

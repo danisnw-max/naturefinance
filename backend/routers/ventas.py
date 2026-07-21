@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlmodel import Session, select
-from database import get_session
+from database import get_session, get_quarter_dates
 from models import ConfiguracionFiscal
 import csv
 import io
@@ -25,15 +25,8 @@ def sync_tienda_ventas(
         cursor = conn.cursor()
         
         if quarter is not None:
-            if quarter == 1:
-                start_date, end_date = f"{year}-01-01", f"{year}-03-31T23:59:59"
-            elif quarter == 2:
-                start_date, end_date = f"{year}-04-01", f"{year}-06-30T23:59:59"
-            elif quarter == 3:
-                start_date, end_date = f"{year}-07-01", f"{year}-09-30T23:59:59"
-            else:
-                start_date, end_date = f"{year}-10-01", f"{year}-12-31T23:59:59"
-            cursor.execute("SELECT SUM(total) FROM venta WHERE date >= ? AND date <= ?", (start_date, end_date))
+            start_date, end_date = get_quarter_dates(year, quarter)
+            cursor.execute("SELECT SUM(total) FROM venta WHERE date >= ? AND date <= ?", (start_date, f"{end_date}T23:59:59"))
         else:
             cursor.execute("SELECT SUM(total) FROM venta")
             

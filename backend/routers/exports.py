@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse, FileResponse
 from sqlmodel import Session, select
-from database import get_session
+from database import get_session, get_quarter_dates
 from models import Gasto, ConfiguracionFiscal
 from routers.reports import get_fiscal_summary
 from typing import Optional
@@ -45,18 +45,8 @@ def download_justificantes_zip(
     query = select(Gasto)
     gastos = session.exec(query).all()
 
-    if quarter is not None:
-        if quarter == 1:
-            q_start, q_end = f"{year}-01-01", f"{year}-03-31"
-        elif quarter == 2:
-            q_start, q_end = f"{year}-04-01", f"{year}-06-30"
-        elif quarter == 3:
-            q_start, q_end = f"{year}-07-01", f"{year}-09-30"
-        else:
-            q_start, q_end = f"{year}-10-01", f"{year}-12-31"
-        gastos = [g for g in gastos if q_start <= g.fecha <= q_end]
-    else:
-        gastos = [g for g in gastos if f"{year}-01-01" <= g.fecha <= f"{year}-12-31"]
+    q_start, q_end = get_quarter_dates(year, quarter)
+    gastos = [g for g in gastos if q_start <= g.fecha <= q_end]
 
     # Filter only files that exist
     files_to_zip = []
@@ -100,18 +90,8 @@ def download_justificantes_zip(
         try:
             conn = sqlite3.connect(TIENDA_DB_PATH)
             cursor = conn.cursor()
-            if quarter is not None:
-                if quarter == 1:
-                    start_date, end_date = f"{year}-01-01", f"{year}-03-31T23:59:59"
-                elif quarter == 2:
-                    start_date, end_date = f"{year}-04-01", f"{year}-06-30T23:59:59"
-                elif quarter == 3:
-                    start_date, end_date = f"{year}-07-01", f"{year}-09-30T23:59:59"
-                else:
-                    start_date, end_date = f"{year}-10-01", f"{year}-12-31T23:59:59"
-                cursor.execute("SELECT id, date, subtotal, total_iva, total FROM venta WHERE date >= ? AND date <= ?", (start_date, end_date))
-            else:
-                cursor.execute("SELECT id, date, subtotal, total_iva, total FROM venta WHERE date >= ? AND date <= ?", (f"{year}-01-01", f"{year}-12-31T23:59:59"))
+            start_date, end_date = get_quarter_dates(year, quarter)
+            cursor.execute("SELECT id, date, subtotal, total_iva, total FROM venta WHERE date >= ? AND date <= ?", (start_date, f"{end_date}T23:59:59"))
             
             rows = cursor.fetchall()
             conn.close()

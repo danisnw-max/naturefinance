@@ -21,3 +21,16 @@ def create_db_and_tables():
 def get_session():
     with Session(engine) as session:
         yield session
+
+def get_quarter_dates(year: int, quarter: int = None):
+    if quarter is not None:
+        if quarter == 1:
+            return f"{year}-01-01", f"{year}-03-31"
+        elif quarter == 2:
+            return f"{year}-04-01", f"{year}-06-30"
+        elif quarter == 3:
+            return f"{year}-07-01", f"{year}-09-30"
+        elif quarter == 4:
+            return f"{year}-10-01", f"{year}-12-31"
+    return f"{year}-01-01", f"{year}-12-31"
+

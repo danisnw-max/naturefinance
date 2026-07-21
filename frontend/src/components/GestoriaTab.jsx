@@ -38,19 +38,9 @@ export default function GestoriaTab({
   }, [selectedQuarter]);
 
   const localGastosAgrupados = React.useMemo(() => {
-    const filteredGastos = docMonthFilter === 'all' 
-      ? allGastos 
-      : allGastos.filter(g => parseInt(g.fecha.split('-')[1], 10) === docMonthFilter);
-      
-    const grupos = {};
-    filteredGastos.forEach(g => {
-      if (!grupos[g.concepto]) {
-        grupos[g.concepto] = { proveedor: g.concepto, categoria: g.categoria, cantidadFacturas: 0, importeTotal: 0 };
-      }
-      grupos[g.concepto].cantidadFacturas += 1;
-      grupos[g.concepto].importeTotal += g.importe;
-    });
-    return Object.values(grupos);
+    if (!Array.isArray(allGastos)) return [];
+    if (docMonthFilter === 'all') return allGastos;
+    return allGastos.filter(g => g.mes === docMonthFilter || g.month === docMonthFilter);
   }, [allGastos, docMonthFilter]);
 
   // Reset month filter when quarter changes
