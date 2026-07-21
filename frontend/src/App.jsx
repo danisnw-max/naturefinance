@@ -152,8 +152,7 @@ export default function App() {
   const fetchAllGastos = async () => {
     try {
       const queryParams = [`year=${filterYear}`];
-      if (filterQuarter !== 'all') queryParams.push(`quarter=${filterQuarter}`);
-      if (filterMonth !== 'all') queryParams.push(`month=${filterMonth}`);
+      if (selectedQuarter) queryParams.push(`quarter=${selectedQuarter}`);
       
       const res = await api.get(`/gastos/summary?${queryParams.join('&')}`);
       setAllGastos(res.gastosAgrupados || []);
@@ -215,11 +214,10 @@ export default function App() {
     fetchGastos(page);
   }, [page, filterYear, filterQuarter, filterMonth, filterCategoria, filterSinJustificante]);
 
-  // When filters change, reset page to 1 and reload allGastos
+  // Reload allGastos for Document Manager when selectedQuarter or year changes
   useEffect(() => {
-    setPage(1);
     fetchAllGastos();
-  }, [filterYear, filterQuarter, filterMonth, filterCategoria, filterSinJustificante]);
+  }, [selectedQuarter, filterYear]);
 
   // Reactive effect to load server calculated fiscal reports when inputs change
   useEffect(() => {
