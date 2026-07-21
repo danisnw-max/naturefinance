@@ -628,6 +628,7 @@ export default function App() {
           {activeTab === 'gestoria' && (
             <GestoriaTab 
               gastos={gastos}
+              allGastos={allGastos}
               gastosAgrupados={gastosAgrupados}
               uploadedDocs={uploadedDocs}
               onDocUpload={handleDocUpload}

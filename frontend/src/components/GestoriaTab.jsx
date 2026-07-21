@@ -6,6 +6,7 @@ import {
 
 export default function GestoriaTab({
   gastos,
+  allGastos = [],
   gastosAgrupados,
   uploadedDocs,
   onDocUpload,
@@ -22,6 +23,40 @@ export default function GestoriaTab({
   selectedQuarter,
   setSelectedQuarter
 }) {
+  const [docMonthFilter, setDocMonthFilter] = React.useState('all');
+
+  const availableMonths = React.useMemo(() => {
+    const allMonths = [
+      { value: 1, label: 'Enero' }, { value: 2, label: 'Febrero' }, { value: 3, label: 'Marzo' },
+      { value: 4, label: 'Abril' }, { value: 5, label: 'Mayo' }, { value: 6, label: 'Junio' },
+      { value: 7, label: 'Julio' }, { value: 8, label: 'Agosto' }, { value: 9, label: 'Septiembre' },
+      { value: 10, label: 'Octubre' }, { value: 11, label: 'Noviembre' }, { value: 12, label: 'Diciembre' }
+    ];
+    if (!selectedQuarter) return allMonths;
+    const q = parseInt(selectedQuarter);
+    return allMonths.filter(m => m.value >= (q - 1) * 3 + 1 && m.value <= q * 3);
+  }, [selectedQuarter]);
+
+  const localGastosAgrupados = React.useMemo(() => {
+    const filteredGastos = docMonthFilter === 'all' 
+      ? allGastos 
+      : allGastos.filter(g => parseInt(g.fecha.split('-')[1], 10) === docMonthFilter);
+      
+    const grupos = {};
+    filteredGastos.forEach(g => {
+      if (!grupos[g.concepto]) {
+        grupos[g.concepto] = { proveedor: g.concepto, categoria: g.categoria, cantidadFacturas: 0, importeTotal: 0 };
+      }
+      grupos[g.concepto].cantidadFacturas += 1;
+      grupos[g.concepto].importeTotal += g.importe;
+    });
+    return Object.values(grupos);
+  }, [allGastos, docMonthFilter]);
+
+  // Reset month filter when quarter changes
+  React.useEffect(() => {
+    setDocMonthFilter('all');
+  }, [selectedQuarter]);
 
   const SummaryRow = ({ label, value, highlight }) => {
     const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
@@ -124,13 +159,30 @@ export default function GestoriaTab({
                   <span className="text-[10px] text-slate-400 uppercase tracking-widest normal-case font-bold">Estado de facturas justificantes por proveedor en esta página</span>
                 </div>
               </div>
-              <div className="bg-slate-950/50 text-emerald-400 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-emerald-500/20">
-                {Object.keys(uploadedDocs).length} / {gastosAgrupados.length} Prov.
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <select 
+                  value={docMonthFilter}
+                  onChange={(e) => setDocMonthFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                  className="bg-slate-900 border border-emerald-500/30 text-emerald-400 text-[10px] font-black rounded-xl px-4 py-3 outline-none cursor-pointer uppercase tracking-widest transition-all focus:border-emerald-500"
+                >
+                  <option value="all">TODOS LOS MESES</option>
+                  {availableMonths.map(m => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+                <div className="bg-slate-950/50 text-emerald-400 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-emerald-500/20">
+                  {Object.keys(uploadedDocs).length} / {localGastosAgrupados.length} Prov.
+                </div>
               </div>
             </div>
 
             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-              {gastosAgrupados.map(grupo => {
+              {localGastosAgrupados.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 text-xs font-black uppercase tracking-widest">
+                  No hay gastos registrados en este periodo
+                </div>
+              ) : (
+                localGastosAgrupados.map(grupo => {
                 const docName = uploadedDocs[grupo.proveedor];
                 return (
                   <div 
