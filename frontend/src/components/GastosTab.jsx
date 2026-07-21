@@ -202,19 +202,22 @@ export default function GastosTab({
             </select>
           </div>
 
-          {filterMonth !== 'all' && (
-            <div className="flex flex-col">
-              <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Gastos Fijos</label>
-              <button
-                type="button"
-                onClick={() => onGenerateRecurring(filterYear, filterMonth)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer h-10"
-                title="Generar gastos fijos para este mes"
-              >
-                <RefreshCcw size={12} /> Autogenerar Fijos
-              </button>
-            </div>
-          )}
+          <div className="flex flex-col">
+            <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-1.5">Gastos Fijos</label>
+            <button
+              type="button"
+              onClick={() => filterMonth !== 'all' && onGenerateRecurring(filterYear, filterMonth)}
+              disabled={filterMonth === 'all'}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-1.5 h-10 transition-all ${
+                filterMonth === 'all'
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-70'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:scale-105 active:scale-95 cursor-pointer'
+              }`}
+              title={filterMonth === 'all' ? 'Selecciona un mes específico para autogenerar sus gastos fijos' : 'Generar gastos fijos para este mes'}
+            >
+              <RefreshCcw size={12} /> Autogenerar Fijos
+            </button>
+          </div>
 
         </div>
 
