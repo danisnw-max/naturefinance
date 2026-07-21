@@ -431,6 +431,25 @@ export default function GastosTab({
             />
           </div>
 
+          {nuevoGasto.categoria === 'Servicios Profesionales / Autónomos' && (
+            <div className="col-span-1 md:col-span-12 p-6 bg-indigo-950/40 border border-indigo-500/30 rounded-3xl z-10">
+              <label className="text-[10px] font-black uppercase text-indigo-300 mb-2 block tracking-widest">% IRPF Retenido en Factura Emitida por Autónomo</label>
+              <div className="flex items-center gap-4">
+                <select
+                  name="retencionIrpf"
+                  value={nuevoGasto.retencionIrpf || 15}
+                  onChange={handleInputChange}
+                  className="bg-slate-900 border border-indigo-500/30 text-indigo-300 font-bold rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                >
+                  <option value={15}>15% IRPF (Retención General Profesional)</option>
+                  <option value={7}>7% IRPF (Nuevos Autónomos / Tipo Reducido)</option>
+                  <option value={0}>0% IRPF (Sin Retención)</option>
+                </select>
+                <span className="text-[10px] text-slate-400 font-medium">Esta retención se incluirá en la Casilla [07/09] del Modelo 111 y la Clave G del Modelo 190.</span>
+              </div>
+            </div>
+          )}
+
           {/* CONTROL IA: CONTROL DE BIENES DE INVERSIÓN */}
           <div className="col-span-1 md:col-span-12 p-6 bg-emerald-950/40 border border-emerald-500/30 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-2 z-10">
             <div className="flex gap-4 items-center">
@@ -596,29 +615,31 @@ export default function GastosTab({
                                   Ver Doc
                                 </a>
 
-                                {/* Email button for payroll / any expense with attachment */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEmailModalGasto(g);
-                                    // Preselect employee if matching concept name
-                                    const match = empleados.find(e => g.concepto.toLowerCase().includes(e.nombre.toLowerCase()));
-                                    if (match) {
-                                      setSelectedEmpId(match.id);
-                                      setCustomEmail(match.email);
-                                    } else if (empleados.length > 0) {
-                                      setSelectedEmpId(empleados[0].id);
-                                      setCustomEmail(empleados[0].email);
-                                    } else {
-                                      setSelectedEmpId('');
-                                      setCustomEmail('');
-                                    }
-                                  }}
-                                  className="text-indigo-500 hover:text-indigo-700 font-black text-[10px] uppercase bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1 rounded-xl border border-indigo-500/20 hover:border-indigo-500/45 transition-all cursor-pointer flex items-center gap-1 shadow-sm hover:scale-105 active:scale-95"
-                                  title="Enviar nómina por email"
-                                >
-                                  <Mail size={12} /> Email
-                                </button>
+                                {/* Email button only for employees in plantilla */}
+                                {g.categoria === 'Nóminas y Personal' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEmailModalGasto(g);
+                                      // Preselect employee if matching concept name
+                                      const match = empleados.find(e => g.concepto.toLowerCase().includes(e.nombre.toLowerCase()));
+                                      if (match) {
+                                        setSelectedEmpId(match.id);
+                                        setCustomEmail(match.email);
+                                      } else if (empleados.length > 0) {
+                                        setSelectedEmpId(empleados[0].id);
+                                        setCustomEmail(empleados[0].email);
+                                      } else {
+                                        setSelectedEmpId('');
+                                        setCustomEmail('');
+                                      }
+                                    }}
+                                    className="text-indigo-500 hover:text-indigo-700 font-black text-[10px] uppercase bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1 rounded-xl border border-indigo-500/20 hover:border-indigo-500/45 transition-all cursor-pointer flex items-center gap-1 shadow-sm hover:scale-105 active:scale-95"
+                                    title="Enviar nómina por email"
+                                  >
+                                    <Mail size={12} /> Email
+                                  </button>
+                                )}
 
                                 <label className="cursor-pointer text-slate-400 hover:text-indigo-600 transition-colors" title="Cambiar documento">
                                   <Upload size={14} />

@@ -72,9 +72,12 @@ def get_fiscal_summary(
     baseGastosDeducible = 0.0
     retencionesAlquiler = 0.0
     retencionesNominas = 0.0
+    retencionesProfesionales = 0.0
     baseNominas = 0.0
     baseAlquiler = 0.0
+    baseProfesionales = 0.0
     numPerceptoresNominas = 0
+    numPerceptoresProfesionales = 0
 
     for g in gastos:
         importe = g.importe or 0.0
@@ -94,6 +97,12 @@ def get_fiscal_summary(
             baseNominas += base
             numPerceptoresNominas += 1
             retencionesNominas += base * ((config.retencionNominas or 0) / 100)
+        elif g.categoria == 'Servicios Profesionales / Autónomos':
+            baseProfesionales += base
+            numPerceptoresProfesionales += 1
+            pct_prof = getattr(g, 'retencionIrpf', None)
+            pct_prof = pct_prof if (pct_prof is not None and pct_prof > 0) else 15
+            retencionesProfesionales += base * (pct_prof / 100)
 
     totalGastosFinal = totalGastosBrutos + simExtraCost
     balanceIVA = ivaVentas - ivaGastosDeducible
@@ -126,11 +135,15 @@ def get_fiscal_summary(
         "baseGastosDeducible": baseGastosDeducible,
         "baseNominas": baseNominas,
         "baseAlquiler": baseAlquiler,
+        "baseProfesionales": baseProfesionales,
         "numPerceptoresNominas": numPerceptoresNominas,
+        "numPerceptoresProfesionales": numPerceptoresProfesionales,
         "pctRetencionNominas": config.retencionNominas if config else 2,
         "pctRetencionAlquiler": config.retencionAlquiler if config else 19,
         "retencionesAlquiler": retencionesAlquiler,
         "retencionesNominas": retencionesNominas,
+        "retencionesProfesionales": retencionesProfesionales,
+        "retencionesTotales111": retencionesNominas + retencionesProfesionales,
         "balanceIVA": balanceIVA,
         "variacionExistencias": variacionExistencias,
         "rendimientoNetoPrevio": rendimientoNetoPrevio,

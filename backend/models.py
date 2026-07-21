@@ -30,6 +30,7 @@ class Gasto(SQLModel, table=True):
     iva: int  # 0, 4, 10, 21
     deducibleIva: int  # 0-100
     deducibleIrpf: int  # 0-100
+    retencionIrpf: int = Field(default=0)  # 0, 7, 15 % IRPF retenido en factura profesional
     justificante_filename: Optional[str] = None  # PDF/image filename uploaded
     es_recurrente: bool = Field(default=False)
 

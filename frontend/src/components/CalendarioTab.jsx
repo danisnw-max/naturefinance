@@ -122,19 +122,29 @@ export default function CalendarioTab({ fiscalCalendar, fiscalData }) {
             </div>
 
             {/* MODELO 111 */}
-            <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${modelStatus.mod111 ? 'bg-emerald-900/20 border-emerald-500/50' : fiscalData.retencionesNominas > 0 ? 'bg-indigo-900/30 border-indigo-500/50' : 'bg-black/20 border-white/10 opacity-50'}`}>
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h4 className={`font-black text-xl ${modelStatus.mod111 ? 'text-emerald-400' : fiscalData.retencionesNominas > 0 ? 'text-indigo-400' : 'text-slate-400'}`}>Modelo 111</h4>
-                  <span className="text-[10px] uppercase tracking-widest text-slate-400">Retenciones Trabajadores y Profesionales</span>
+            {(() => {
+              const total111 = fiscalData.retencionesTotales111 !== undefined ? fiscalData.retencionesTotales111 : (fiscalData.retencionesNominas + (fiscalData.retencionesProfesionales || 0));
+              const hasRetention = total111 > 0;
+              return (
+                <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${modelStatus.mod111 ? 'bg-emerald-900/20 border-emerald-500/50' : hasRetention ? 'bg-indigo-900/30 border-indigo-500/50' : 'bg-black/20 border-white/10 opacity-50'}`}>
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h4 className={`font-black text-xl ${modelStatus.mod111 ? 'text-emerald-400' : hasRetention ? 'text-indigo-400' : 'text-slate-400'}`}>Modelo 111</h4>
+                      <span className="text-[10px] uppercase tracking-widest text-slate-400">Retenciones Trabajadores y Profesionales</span>
+                    </div>
+                    {renderStatusIcon('mod111', hasRetention)}
+                  </div>
+                  <p className="text-3xl font-black mb-2">{total111.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</p>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest space-y-1 mb-2 normal-case">
+                    <span className="block">• Nóminas (Plantilla): <strong className="text-white">{(fiscalData.retencionesNominas || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</strong></span>
+                    <span className="block">• Facturas Autónomos: <strong className="text-indigo-300">{(fiscalData.retencionesProfesionales || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</strong></span>
+                  </div>
+                  <p className="text-xs text-slate-400 italic normal-case font-medium">
+                    {modelStatus.mod111 ? 'Presentado correctamente.' : hasRetention ? 'Obligatorio por tener nóminas o facturas con retención de autónomos.' : 'Sin retenciones registradas en este periodo.'}
+                  </p>
                 </div>
-                {renderStatusIcon('mod111', fiscalData.retencionesNominas > 0)}
-              </div>
-              <p className="text-3xl font-black mb-2">{fiscalData.retencionesNominas.toLocaleString('es-ES')} €</p>
-              <p className="text-xs text-slate-400 italic normal-case font-medium">
-                {modelStatus.mod111 ? 'Presentado correctamente.' : fiscalData.retencionesNominas > 0 ? 'Obligatorio por tener nóminas o facturas con retención.' : 'No tienes nóminas registradas este trimestre.'}
-              </p>
-            </div>
+              );
+            })()}
 
             {/* MODELO 115 */}
             <div className={`p-8 rounded-[32px] border transition-all uppercase font-black italic ${modelStatus.mod115 ? 'bg-emerald-900/20 border-emerald-500/50' : fiscalData.retencionesAlquiler > 0 ? 'bg-rose-900/30 border-rose-500/50' : 'bg-black/20 border-white/10 opacity-50'}`}>

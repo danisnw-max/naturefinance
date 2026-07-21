@@ -15,7 +15,7 @@ import GestoriaTab from './components/GestoriaTab';
 import FiscalTab from './components/FiscalTab';
 
 const CATEGORIES = [
-  'Alquiler', 'S.S. Autónomo', 'Suministros', 'Gestoría', 'Marketing', 'Reposición', 'Nóminas y Personal', 'Dietas/Desplazamientos', 'Otros'
+  'Alquiler', 'S.S. Autónomo', 'Suministros', 'Gestoría', 'Marketing', 'Reposición', 'Nóminas y Personal', 'Servicios Profesionales / Autónomos', 'Dietas/Desplazamientos', 'Otros'
 ];
 
 export default function App() {
