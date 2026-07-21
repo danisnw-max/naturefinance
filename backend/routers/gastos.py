@@ -200,16 +200,20 @@ def generate_recurring(
     added_count = 0
     max_days = calendar.monthrange(year, month)[1]
     
+    import re
     for key, template in templates.items():
         if key not in existing_keys:
             day = min(template.diaCobro, max_days)
             new_date = f"{year}-{month:02d}-{day:02d}"
             
+            # Automatically update strings like "6/2026" or "06/2026" to "7/2026" in the concept
+            nuevo_concepto = re.sub(r'\b\d{1,2}/\d{4}\b', f"{month}/{year}", template.concepto)
+            
             new_gasto = Gasto(
                 fecha=new_date,
                 diaCobro=day,
                 categoria=template.categoria,
-                concepto=template.concepto,
+                concepto=nuevo_concepto,
                 importe=template.importe,
                 iva=template.iva,
                 deducibleIva=template.deducibleIva,
