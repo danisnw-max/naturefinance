@@ -333,36 +333,6 @@ export default function GestoriaTab({
             </div>
           </div>
 
-          {/* SECCIÓN CIERRE ANUAL (INFORMATIVOS) */}
-          <div className="mt-12 pt-8 border-t border-slate-200">
-            <h5 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4 italic">Cierre Anual Fiscal (Modelos Informativos Enero)</h5>
-            <div className="flex flex-wrap gap-4 font-black tracking-wider text-[10px] uppercase">
-              <a 
-                href="http://localhost:8001/api/exports/modelo-390-pdf"
-                className="bg-slate-800 text-emerald-400 border border-emerald-500/30 px-6 py-3.5 rounded-2xl font-black hover:bg-slate-900 shadow-lg transition-all flex items-center gap-2"
-              >
-                <FileText size={14} /> Mod 390 Resumen IVA (PDF)
-              </a>
-              <a 
-                href="http://localhost:8001/api/exports/modelo-190-pdf"
-                className="bg-slate-800 text-indigo-400 border border-indigo-500/30 px-6 py-3.5 rounded-2xl font-black hover:bg-slate-900 shadow-lg transition-all flex items-center gap-2"
-              >
-                <FileText size={14} /> Mod 190 Resumen Nóminas (PDF)
-              </a>
-              <a 
-                href="http://localhost:8001/api/exports/modelo-180-pdf"
-                className="bg-slate-800 text-rose-400 border border-rose-500/30 px-6 py-3.5 rounded-2xl font-black hover:bg-slate-900 shadow-lg transition-all flex items-center gap-2"
-              >
-                <FileText size={14} /> Mod 180 Resumen Alquiler (PDF)
-              </a>
-              <a 
-                href="http://localhost:8001/api/exports/lroe-xml"
-                className="bg-slate-800 text-blue-400 border border-blue-500/30 px-6 py-3.5 rounded-2xl font-black hover:bg-slate-900 shadow-lg transition-all flex items-center gap-2"
-              >
-                <Download size={14} /> LROE Anual Completo (XML)
-              </a>
-            </div>
-          </div>
 
         </div>
       )}
