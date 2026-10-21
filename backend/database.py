@@ -1,8 +1,10 @@
+import os
 from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
 
-sqlite_file_name = "database.db"
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+sqlite_file_name = os.path.join(BASE_DIR, "database.db")
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
 # check_same_thread is needed only for SQLite because FastAPI could access it from multiple threads
