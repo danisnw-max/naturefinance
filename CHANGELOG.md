@@ -5,6 +5,14 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-10-21
+
+### Corregido
+- **Ruta Absoluta de Base de Datos en Backend (database.py)**:
+  - Fijada la ruta absoluta de database.db mediante os.path.abspath(os.path.dirname(__file__)) garantizando la consistencia y comunicación permanente con los datos de Natura ERP.
+
+---
+
 ## [1.5.0] - 2026-07-21
 
 ### Añadido
